@@ -1,0 +1,15 @@
+{
+  "name": "Tanaj — Torá, Nevi'im y Ketuvim",
+  "short_name": "Tanaj",
+  "description": "El Tanaj completo en hebreo (WLC, con niqqud y te'amim) y español (RV1909), con API JSON abierta.",
+  "lang": "es",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fbf9f4",
+  "theme_color": "#0f172a",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

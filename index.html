@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tanaj — Torá, Nevi'im y Ketuvim</title>
+<meta name="description" content="El Tanaj completo (Torá, Nevi'im y Ketuvim) en hebreo con niqqud y te'amim, junto a la traducción Reina-Valera 1909, con API JSON abierta.">
+<meta name="theme-color" content="#0f172a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='24' font-size='24'%3E%F0%9F%93%9C%3C/text%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #fbf9f4; --fg: #1b1b1b; --muted: #6b6b6b; --line: #e2ddd0; --card: #fff;
+  --accent: #7c2d12; --accent-soft: #f6e7df; --he: #111827; --mark: #fde68a;
+  --hi: 1.55rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#12100e; --fg:#ece7dd; --muted:#a8a29a; --line:#2c2822; --card:#1a1714;
+          --accent:#f0a882; --accent-soft:#2a1c14; --he:#f6f2ea; --mark:#5c4a12; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); }
+body { font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+a { color: var(--accent); }
+button, input { font: inherit; color: inherit; }
+.skip { position: absolute; left: -9999px; }
+.skip:focus { left: 8px; top: 8px; background: var(--card); padding: 6px 10px; z-index: 50; }
+
+header { position: sticky; top: 0; z-index: 20; background: var(--card);
+         border-bottom: 1px solid var(--line); padding: 8px 14px;
+         display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.brand { font-weight: 700; font-size: 1.05rem; letter-spacing: .2px; }
+.brand span { font-weight: 400; color: var(--muted); font-size: .82rem; }
+.grow { flex: 1 1 220px; min-width: 150px; }
+input[type=search] { width: 100%; padding: 8px 12px; border: 1px solid var(--line);
+                     border-radius: 999px; background: var(--bg); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 6px 11px; cursor: pointer; }
+.seg button[aria-pressed=true] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.tool { border: 1px solid var(--line); background: transparent; border-radius: 8px;
+        padding: 6px 9px; cursor: pointer; }
+.tool:hover, .seg button:hover { background: var(--accent-soft); }
+
+.wrap { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 18px;
+        max-width: 1180px; margin: 0 auto; padding: 16px 14px 60px; }
+@media (max-width: 860px) { .wrap { grid-template-columns: 1fr; } }
+
+nav.bar { border: 1px solid var(--line); border-radius: 12px; background: var(--card);
+          padding: 10px; align-self: start; position: sticky; top: 62px; max-height: 82vh; overflow: auto; }
+@media (max-width: 860px) { nav.bar { position: static; max-height: none; } }
+nav.bar details { border-bottom: 1px dashed var(--line); padding: 4px 0; }
+nav.bar details:last-child { border-bottom: 0; }
+nav.bar summary { cursor: pointer; font-weight: 600; padding: 4px 2px; }
+nav.bar summary small { color: var(--muted); font-weight: 400; }
+nav.bar ul { list-style: none; margin: 4px 0 8px; padding: 0; }
+nav.bar li a { display: flex; justify-content: space-between; gap: 6px; text-decoration: none;
+               padding: 3px 6px; border-radius: 6px; color: var(--fg); }
+nav.bar li a:hover { background: var(--accent-soft); }
+nav.bar li a[aria-current=true] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+nav.bar .he { direction: rtl; unicode-bidi: isolate; font-size: 1.02rem; }
+.chaps { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 10px; }
+.chaps a { text-decoration: none; min-width: 30px; text-align: center; padding: 3px 6px;
+           border: 1px solid var(--line); border-radius: 6px; font-size: .82rem; }
+.chaps a[aria-current=true] { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+main { min-width: 0; }
+.chapter-head { display: flex; align-items: flex-end; justify-content: space-between;
+                gap: 10px; flex-wrap: wrap; border-bottom: 2px solid var(--line); padding-bottom: 6px; }
+.chapter-head h2 { margin: 0; font-size: 1.35rem; }
+.chapter-head .he { direction: rtl; font-size: 1.2rem; }
+.chapter-head .meta { color: var(--muted); font-size: .84rem; }
+.note { background: var(--accent-soft); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+        border-radius: 8px; padding: 8px 10px; margin: 10px 0; font-size: .88rem; }
+
+ol.verses { list-style: none; margin: 12px 0 0; padding: 0; }
+ol.verses li { display: grid; grid-template-columns: 34px minmax(0,1fr); gap: 8px;
+               padding: 7px 6px; border-bottom: 1px dashed var(--line); border-radius: 6px; }
+ol.verses li:hover { background: var(--card); }
+ol.verses li:target, ol.verses li.hit { background: var(--mark); }
+.num { color: var(--muted); font-size: .78rem; text-align: right; padding-top: .35rem; font-variant-numeric: tabular-nums; }
+.he { direction: rtl; text-align: right; font-family: "Times New Roman", "Ezra SIL", "SBL Hebrew", serif;
+      font-size: var(--hi); line-height: 1.85; color: var(--he); }
+.he .marker { color: var(--muted); font-size: .7em; }
+.es { margin-top: 2px; }
+body.no-niqqud .he { /* el niqqud se quita al mostrar he_plain */ }
+.verse-tools { margin-top: 3px; display: flex; gap: 8px; opacity: 0; transition: opacity .15s; }
+ol.verses li:hover .verse-tools, ol.verses li:focus-within .verse-tools { opacity: 1; }
+.verse-tools button { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: .78rem; padding: 0; }
+.verse-tools button:hover { color: var(--accent); text-decoration: underline; }
+.cols { display: grid; gap: 4px; }
+body.mode-he .es, body.mode-es .he { display: none; }
+
+.pager { display: flex; justify-content: space-between; gap: 10px; margin-top: 18px; }
+.pager button, .pager a { border: 1px solid var(--line); background: var(--card); border-radius: 8px;
+                          padding: 8px 12px; cursor: pointer; text-decoration: none; color: var(--fg); }
+
+#results { position: fixed; inset: 62px 0 auto 0; margin: 0 auto; max-width: 760px;
+           background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+           box-shadow: 0 18px 40px rgba(0,0,0,.18); max-height: 74vh; overflow: auto; padding: 10px; display: none; z-index: 30; }
+#results.open { display: block; }
+#results .hit { padding: 8px; border-bottom: 1px dashed var(--line); cursor: pointer; text-align: left;
+                width: 100%; background: transparent; border-left: 0; border-right: 0; border-top: 0; }
+#results .hit:hover { background: var(--accent-soft); }
+#results .hit .r { color: var(--accent); font-weight: 600; font-size: .85rem; }
+#results .hit .h { direction: rtl; text-align: right; font-size: 1.15rem; }
+#results .hit .e { font-size: .92rem; }
+#results .hint { color: var(--muted); font-size: .85rem; padding: 6px; }
+mark { background: var(--mark); color: inherit; }
+
+footer { border-top: 1px solid var(--line); color: var(--muted); font-size: .84rem;
+         padding: 14px; max-width: 1180px; margin: 0 auto; }
+footer a { color: var(--accent); }
+@media print { nav.bar, header, .pager, .verse-tools { display: none; } .wrap { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#lectura">Saltar al texto</a>
+
+<header>
+  <div class="brand">Tanaj<br><span>Torá · Nevi'im · Ketuvim</span></div>
+  <div class="grow"><input id="q" type="search" placeholder="Buscar en el Tanaj (hebreo o español) — tecla /"
+       aria-label="Buscar en el Tanaj" autocomplete="off"></div>
+  <div class="seg" role="group" aria-label="Idioma">
+    <button data-mode="both" aria-pressed="true">Ambos</button>
+    <button data-mode="he" aria-pressed="false">Hebreo</button>
+    <button data-mode="es" aria-pressed="false">Español</button>
+  </div>
+  <button class="tool" id="nk" aria-pressed="true" title="Mostrar u ocultar niqqud y te'amim">ניקוד</button>
+  <button class="tool" id="fminus" title="Texto más pequeño">A−</button>
+  <button class="tool" id="fplus" title="Texto más grande">A+</button>
+  <button class="tool" id="rnd" title="Versículo al azar">Al azar</button>
+</header>
+
+<div id="results" role="listbox" aria-label="Resultados"></div>
+
+<div class="wrap">
+  <nav class="bar" id="nav" aria-label="Libros del Tanaj"></nav>
+  <main id="lectura">
+    <div class="chapter-head">
+      <div>
+        <h2 id="titulo">Cargando…</h2>
+        <div class="he" id="titulo-he"></div>
+      </div>
+      <div class="meta" id="meta"></div>
+    </div>
+    <div id="aviso"></div>
+    <ol class="verses" id="verses"></ol>
+    <div class="pager">
+      <button id="prev">← Capítulo anterior</button>
+      <a id="api" href="/v1/he/bereshit/1.json">Ver JSON de este capítulo</a>
+      <button id="next">Capítulo siguiente →</button>
+    </div>
+  </main>
+</div>
+
+<footer>
+  <p><strong>Fuentes.</strong> Hebreo: <em>Westminster Leningrad Codex</em> con niqqud, te'amim y morfología,
+  vía <a href="https://github.com/openscriptures/morphhb" rel="noopener">openscriptures/morphhb</a>
+  (CC BY 4.0). Español: <em>Reina-Valera 1909</em> (dominio público) vía
+  <a href="https://api.getbible.net/" rel="noopener">getbible v2</a>.
+  Secciones: Torá (5 libros), Nevi'im (21), Ketuvim (13) — 929 capítulos, 23.213 versículos.</p>
+  <p>API JSON de solo lectura en <a href="/v1/index.json">/v1/index.json</a> ·
+  documentación en <a href="api.html">api.html</a> ·
+  numeración hebrea vs. española en <a href="/v1/align.json">/v1/align.json</a>.</p>
+  <p id="estado" aria-live="polite"></p>
+</footer>
+
+<script>
+"use strict";
+/* Lector del Tanaj — sin dependencias: la API estática del repo es el backend. */
+const $ = (s) => document.querySelector(s);
+const state = { idx: null, slug: "bereshit", chapter: 1, mode: "both", niqqud: true,
+                books: {}, cache: {}, search: {}, searching: false };
+
+const NIQ = /[\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7]/g;
+const normHe = (s) => (s || "").replace(NIQ, "").replace(/[\u05be\u05c0\u05c3]/g, " ").replace(/\s+/g, " ").trim();
+const normEs = (s) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const esc = (s) => (s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+async function getJSON(url) {
+  const r = await fetch(url, { cache: "no-cache" });
+  if (!r.ok) throw new Error(url + " → HTTP " + r.status);
+  return r.json();
+}
+const chapterURL = (lang, slug, cap) => "v1/" + lang + "/" + slug + "/" + cap + ".json";
+
+function book() { return state.books[state.slug]; }
+function chapterCount(slug) { return state.books[slug] ? state.books[slug].chapters : 0; }
+
+/* ── navegación lateral ─────────────────────────────────────────────── */
+function renderNav() {
+  const idx = state.idx, nav = $("#nav");
+  const secName = { torah: "Torá", neviim: "Nevi'im", ketuvim: "Ketuvim" };
+  let html = "";
+  for (const sec of idx.sections) {
+    const books = sec.books.map((s) => state.books[s]);
+    const vs = books.reduce((a, b) => a + b.verses, 0);
+    html += "<details" + (books.some((b) => b.slug === state.slug) ? " open" : "") + ">" +
+      "<summary>" + secName[sec.id] + " <small>· " + books.length + " libros · " + vs + " vv.</small></summary><ul>";
+    for (const b of books) {
+      const cur = b.slug === state.slug;
+      html += "<li><a href='#/" + b.slug + "/1' data-book='" + b.slug + "'" +
+        (cur ? " aria-current='true'" : "") + "><span>" + esc(b.es) + "</span>" +
+        "<span class='he'>" + esc(b.he) + "</span></a></li>";
+      if (cur) html += "<li>" + chapters(b) + "</li>";
+    }
+    html += "</ul></details>";
+  }
+  nav.innerHTML = html;
+}
+function chapters(b) {
+  let out = "<div class='chaps'>";
+  for (let c = 1; c <= b.chapters; c++) {
+    out += "<a href='#/" + b.slug + "/" + c + "'" + (c === state.chapter ? " aria-current='true'" : "") +
+      ">" + c + "</a>";
+  }
+  return out + "</div>";
+}
+
+/* ── lectura ────────────────────────────────────────────────────────── */
+function verseHe(v) {
+  const t = state.niqqud ? v.he : v.he_plain;
+  return esc(t) + (v.marker ? " <span class='marker'>[" + esc(v.marker) + "]</span>" : "");
+}
+
+function renderChapter(he, es) {
+  const b = book();
+  $("#titulo").textContent = b.es + " " + state.chapter;
+  $("#titulo-he").textContent = b.he + " " + state.chapter;
+  const sameNum = es ? (es.alignment.same_numbering !== false) : true;
+  $("#meta").textContent = b.he + " · " + he.counts.verses + " versículos" +
+    (es ? " · RV1909 " + es.counts.verses + " versículos" : " · sin texto en español");
+  $("#api").href = "/" + chapterURL("he", state.slug, state.chapter);
+  let aviso = "";
+  if (es && !sameNum) {
+    aviso = "<div class='note'><strong>Numeración distinta.</strong> En este capítulo el Tanaj cuenta " +
+      he.counts.verses + " versículos y la RV1909 " + es.counts.verses +
+      " (el corte de versículos no coincide). Cada columna conserva su numeración; " +
+      "el detalle está en <a href='/v1/align.json'>align.json</a>. " +
+      "Sugerencia: usa «Hebreo» o «Español» para leer seguido.</div>";
+  } else if (es && es.verses.some((v) => v.es_ref)) {
+    aviso = "<div class='note'>Malaquías/Yoel: la cita del español se reubicó al capítulo hebreo; " +
+      "el superíndice muestra la referencia original de la RV1909.</div>";
+  }
+  $("#aviso").innerHTML = aviso;
+
+  // Con la misma numeración se alinea por posición; si no, por número de versículo
+  // (y los que solo existan en español se añaden al final, con su propio número).
+  const esPorN = {};
+  if (es) es.verses.forEach((v, i) => { esPorN[sameNum ? he.verses[i].n : v.n] = v; });
+  const rows = he.verses.map((v, i) => row(v, es ? (sameNum ? es.verses[i] : esPorN[v.n]) : null));
+  if (es && !sameNum) {
+    for (const v of es.verses) if (!he.verses.some((h) => h.n === v.n)) rows.push(row(null, v));
+  }
+  $("#verses").innerHTML = rows.join("");
+  document.title = b.es + " " + state.chapter + " — Tanaj";
+}
+function row(hv, ev) {
+  const n = hv ? hv.n : ev.n;
+  const id = state.slug + "-" + state.chapter + "-" + n;
+  return "<li id='" + id + "' data-n='" + n + "'>" +
+    "<div class='num'>" + n + "</div><div>" +
+    "<div class='he'>" + (hv ? verseHe(hv) : "<em>—</em>") + "</div>" +
+    "<div class='es'>" + (ev ? esc(ev.es) + (ev.es_ref ? " <small>(" + esc(ev.es_ref) + ")</small>" : "") : "") + "</div>" +
+    "<div class='verse-tools'><button data-copy='" + n + "'>Copiar</button>" +
+    "<button data-link='" + n + "'>Enlace</button></div></div></li>";
+}
+
+async function load(slug, chapter, verse, opts) {
+  state.slug = slug; state.chapter = chapter;
+  const key = slug + "/" + chapter;
+  let he, es = null;
+  if (state.cache[key]) { he = state.cache[key].he; es = state.cache[key].es; }
+  else {
+    he = await getJSON(chapterURL("he", slug, chapter));
+    try { es = await getJSON(chapterURL("es", slug, chapter)); } catch (e) { es = null; }
+    state.cache[key] = { he, es };
+  }
+  renderNav(); renderChapter(he, es);
+  state.rendered = state.key;
+  if (verse) {
+    const el = document.getElementById(slug + "-" + chapter + "-" + verse);
+    if (el) { el.classList.add("hit"); el.scrollIntoView({ block: "center" }); }
+  } else {
+    window.scrollTo({ top: 0 });
+  }
+  const nuevo = "#/" + slug + "/" + chapter + (verse ? "/" + verse : "");
+  state.key = slug + "/" + chapter;
+  if (location.hash !== nuevo) {
+    if (opts && opts.replace) history.replaceState(null, "", nuevo);
+    else location.hash = nuevo;
+  }
+  $("#estado").textContent = "Mostrando " + he.ref + " · " + he.counts.verses + " versículos";
+}
+
+/* ── búsqueda ───────────────────────────────────────────────────────── */
+async function loadSearch(section) {
+  if (state.search[section]) return state.search[section];
+  const d = await getJSON("v1/search/" + section + ".json");
+  state.search[section] = d.verses;
+  return d.verses;
+}
+async function search(q) {
+  const box = $("#results");
+  const query = q.trim();
+  if (query.length < 2) { box.classList.remove("open"); box.innerHTML = ""; return; }
+  state.searching = true;
+  box.classList.add("open");
+  box.innerHTML = "<div class='hint'>Buscando…</div>";
+  const sec = book().section;
+  let rows = [];
+  try {
+    const qh = normHe(query).replace(/"/g, "");
+    const qe = normEs(query);
+    const sections = state.allSections ? ["torah", "neviim", "ketuvim"] : [sec];
+    for (const s of sections) {
+      const data = await loadSearch(s);
+      for (const [ref, he, es] of data) {
+        if ((qh && he.replace(/\s+/g, " ").includes(qh)) || (qe && es.includes(qe))) {
+          rows.push([ref, he, es]);
+          if (rows.length > 400) break;
+        }
+      }
+    }
+  } catch (e) {
+    box.innerHTML = "<div class='hint'>Error al buscar: " + esc(e.message) + "</div>";
+    return;
+  }
+  if (!rows.length) { box.innerHTML = "<div class='hint'>Sin resultados en " + sec + ". " +
+      "<button class='tool' id='all'>Buscar en todo el Tanaj</button></div>"; bindAll(); return; }
+  box.innerHTML = "<div class='hint'>" + rows.length + " resultado(s) en " +
+    (state.allSections ? "todo el Tanaj" : "la sección actual") +
+    " · <button class='tool' id='all'>Buscar en todo el Tanaj</button></div>" +
+    rows.slice(0, 200).map(([ref, he, es]) => {
+      const [slug, cap, n] = ref.split("/");
+      return "<button class='hit' data-ref='" + ref + "'><div class='r'>" +
+        esc(state.books[slug].es) + " " + cap + ":" + n + "</div>" +
+        "<div class='h'>" + esc(he.slice(0, 120)) + "</div><div class='e'>" + esc(es.slice(0, 160)) + "</div></button>";
+    }).join("");
+  bindAll();
+}
+function bindAll() {
+  const all = document.getElementById("all");
+  if (all) all.onclick = async () => { state.allSections = true; await search($("#q").value); };
+  document.querySelectorAll("#results .hit").forEach((el) => {
+    el.onclick = () => {
+      const [slug, cap, n] = el.dataset.ref.split("/");
+      $("#results").classList.remove("open");
+      load(slug, +cap, +n);
+    };
+  });
+}
+
+/* ── eventos ────────────────────────────────────────────────────────── */
+let timer = null;
+$("#q").addEventListener("input", (e) => {
+  clearTimeout(timer);
+  timer = setTimeout(() => search(e.target.value), 220);
+});
+$("#q").addEventListener("keydown", (e) => { if (e.key === "Escape") { $("#results").classList.remove("open"); e.target.blur(); } });
+
+document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => {
+  state.mode = b.dataset.mode;
+  document.body.className = state.mode === "both" ? "" : "mode-" + state.mode;
+  document.querySelectorAll(".seg button").forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
+}));
+$("#nk").addEventListener("click", () => {
+  state.niqqud = !state.niqqud;
+  $("#nk").setAttribute("aria-pressed", String(state.niqqud));
+  load(state.slug, state.chapter);
+});
+let fs = 1.55;
+const setFont = (d) => { fs = Math.min(2.6, Math.max(1.1, fs + d)); document.documentElement.style.setProperty("--hi", fs + "rem"); };
+$("#fplus").onclick = () => setFont(0.12);
+$("#fminus").onclick = () => setFont(-0.12);
+
+$("#prev").onclick = () => go(-1);
+$("#next").onclick = () => go(1);
+function go(d) {
+  let slug = state.slug, cap = state.chapter + d;
+  const order = state.idx.books.map((b) => b.slug);
+  if (cap < 1) {
+    const i = order.indexOf(slug) - 1;
+    if (i < 0) return;
+    slug = order[i]; cap = chapterCount(slug);
+  } else if (cap > chapterCount(slug)) {
+    const i = order.indexOf(slug) + 1;
+    if (i >= order.length) return;
+    slug = order[i]; cap = 1;
+  }
+  load(slug, cap);
+}
+$("#rnd").onclick = () => {
+  const books = state.idx.books;
+  const b = books[Math.floor(Math.random() * books.length)];
+  const cap = 1 + Math.floor(Math.random() * b.chapters);
+  load(b.slug, cap);
+};
+document.addEventListener("click", (e) => {
+  const c = e.target.closest("[data-copy]"), l = e.target.closest("[data-link]");
+  if (!c && !l) return;
+  const n = +((c || l).dataset.copy || (c || l).dataset.link);
+  const li = e.target.closest("li"), he = li.querySelector(".he").innerText, es = li.querySelector(".es").innerText;
+  const ref = book().he + " " + state.chapter + ":" + n + " [" + book().es + " " + state.chapter + ":" + n + "]";
+  if (l) {
+    const url = location.origin + location.pathname + "#/" + state.slug + "/" + state.chapter + "/" + n;
+    navigator.clipboard && navigator.clipboard.writeText(url);
+    $("#estado").textContent = "Enlace copiado: " + url;
+  } else {
+    const txt = ref + "\n" + he + (es ? "\n" + es : "");
+    if (navigator.clipboard) navigator.clipboard.writeText(txt);
+    $("#estado").textContent = "Copiado " + ref;
+  }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT") return;
+  if (e.key === "/") { e.preventDefault(); $("#q").focus(); return; }
+  if (e.key === "ArrowRight") go(1);
+  if (e.key === "ArrowLeft") go(-1);
+  if (e.key === "Escape") $("#results").classList.remove("open");
+});
+window.addEventListener("hashchange", route);
+
+function route() {
+  const m = location.hash.match(/^#\/([^/]+)\/(\d+)(?:\/(\d+))?/);
+  if (!m) return;
+  const slug = (state.books[m[1]] ? m[1] : (state.idx.books.find((b) =>
+    (b.aliases || []).map((a) => a.toLowerCase().replace(/\s+/g, "")).includes(m[1].toLowerCase())) || {}).slug) || state.slug;
+  if (state.key === slug + "/" + (+m[2]) && state.rendered === state.key) return;   // ya visible
+  load(slug, +m[2], m[3] ? +m[3] : null, { replace: true }).catch((err) => {
+    $("#aviso").innerHTML = "<div class='note'>Error: " + esc(err.message) + "</div>";
+  });
+}
+
+async function boot() {
+  try {
+    state.idx = await getJSON("v1/index.json");
+    state.idx.books.forEach((b) => { state.books[b.slug] = b; });
+    await route();
+    if (!location.hash) await load("bereshit", 1);
+  } catch (e) {
+    $("#titulo").textContent = "Error al cargar la API";
+    $("#aviso").innerHTML = "<div class='note'>" + esc(e.message) +
+      " — sirve el sitio con un servidor HTTP (no abras el archivo directamente).</div>";
+  }
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+/* Superficie pública mínima: la usan las pruebas del lector y el modo depuración. */
+window.Tanaj = { state, load, search, go, boot };
+boot();
+</script>
+</body>
+</html>

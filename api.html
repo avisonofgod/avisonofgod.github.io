@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API del Tanaj — documentación</title>
+<meta name="description" content="API JSON de solo lectura del Tanaj: Torá, Nevi'im y Ketuvim en hebreo (WLC) y español (RV1909).">
+<style>
+  :root { --bg:#fbf9f4; --fg:#1b1b1b; --muted:#6b6b6b; --line:#e2ddd0; --card:#fff; --accent:#7c2d12; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#12100e; --fg:#ece7dd; --muted:#a8a29a; --line:#2c2822; --card:#1a1714; --accent:#f0a882; } }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width: 880px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { margin: 0 0 4px; font-size: 1.7rem; }
+  h2 { margin-top: 32px; font-size: 1.15rem; border-bottom: 2px solid var(--line); padding-bottom: 4px; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88rem; }
+  pre { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; overflow: auto; }
+  code { background: var(--card); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+  pre code { border: 0; background: transparent; padding: 0; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; border-bottom: 1px solid var(--line); padding: 6px 8px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .he { direction: rtl; unicode-bidi: isolate; font-family: "Times New Roman", serif; }
+  a { color: var(--accent); }
+  .muted { color: var(--muted); }
+  </style>
+</head>
+<body>
+<main>
+  <p class="muted"><a href="./">← Lector del Tanaj</a></p>
+  <h1>API del Tanaj</h1>
+  <p class="muted">JSON de solo lectura, sin claves, sin backend: cada archivo del repositorio es un endpoint.
+  <strong>39 libros · 929 capítulos · 23.213 versículos</strong> en hebreo y 23.129 en español.</p>
+
+  <h2>Endpoints</h2>
+  <table>
+    <tr><th>Ruta</th><th>Qué devuelve</th></tr>
+    <tr><td><code>/v1/index.json</code></td><td>Secciones, orden judío, libros (con alias), conteos y fuentes.</td></tr>
+    <tr><td><code>/v1/he/&lt;libro&gt;/&lt;capítulo&gt;.json</code></td><td>Capítulo en hebreo (WLC) con niqqud, te'amim y <code>he_plain</code> sin marcas.</td></tr>
+    <tr><td><code>/v1/es/&lt;libro&gt;/&lt;capítulo&gt;.json</code></td><td>Capítulo en español (RV1909) + bloque <code>alignment</code>.</td></tr>
+    <tr><td><code>/v1/search/&lt;torah|neviim|ketuvim&gt;.json</code></td><td>Índice de búsqueda: <code>[referencia, hebreo sin niqqud, español normalizado]</code>.</td></tr>
+    <tr><td><code>/v1/align.json</code></td><td>Diferencias de numeración hebrea ↔ española (142 capítulos) y libros con regla curada.</td></tr>
+    <tr><td><code>/v1/manifest.json</code></td><td>Ruta, bytes y <code>sha256</code> de cada archivo (integridad).</td></tr>
+    <tr><td><code>/v1/books/&lt;libro&gt;.json</code></td><td>Libro completo he+es (opcional: <code>--books</code> en el build).</td></tr>
+  </table>
+
+  <h2>Ejemplos</h2>
+  <pre><code># capítulo completo (hebreo)
+curl -s https://avisonofgod.github.io/v1/he/bereshit/1.json | head -c 400
+
+# Shemá, verso 4 de Devarim 6
+curl -s https://avisonofgod.github.io/v1/he/devarim/6.json | jq '.verses[3]'
+
+# español del mismo capítulo
+curl -s https://avisonofgod.github.io/v1/es/devarim/6.json | jq -r '.verses[3].es'
+
+# alias: "genesis" es lo mismo que "bereshit"
+curl -s -o /dev/null -w "%{http_code}\n" https://avisonofgod.github.io/v1/he/genesis/1.json   # 404: usa slugs canónicos</code></pre>
+  <p class="muted">Los alias (<code>genesis</code>, <code>exodo</code>, <code>salmos</code>…) se resuelven en el lector;
+  en la API la ruta canónica es el slug hebreo (<code>bereshit</code>, <code>shemot</code>, <code>tehilim</code>…).</p>
+
+  <h2>Formato de un versículo</h2>
+  <pre><code>{
+  "ref": "בְּרֵאשִׁית 1",          // hebreo (o "Génesis 1" en /es/)
+  "ref_en": "Genesis 1",
+  "book": { "slug": "bereshit", "he": "בְּרֵאשִׁית", "es": "Génesis",
+            "en": "Genesis", "section": "torah", "order": 1 },
+  "chapter": 1,
+  "lang": "he",
+  "source": "Westminster Leningrad Codex (morphhb, CC BY 4.0)",
+  "verses": [
+    { "n": 1,
+      "he": "בְּרֵאשִׁ֖ית בָּרָ֣א אֱלֹהִ֑ים אֵ֥ת הַשָּׁמַ֖יִם וְאֵ֥ת הָאָֽרֶץ׃",
+      "he_plain": "בראשית ברא אלהים את השמים ואת הארץ" },
+    { "n": 5, "he": "…", "he_plain": "…", "marker": "פ" }
+  ],
+  "counts": { "verses": 31 }
+}</code></pre>
+  <ul>
+    <li><code>he</code>: texto del códice con niqqud y te'amim, en <strong>NFC</strong>.</li>
+    <li><code>he_plain</code>: el mismo texto sin signos (búsqueda, comparación, transliteración).</li>
+    <li><code>marker</code>: marca de párrafo del códice: <code>פ</code> (petuĥá) o <code>ס</code> (setumá).</li>
+    <li>En español, <code>alignment</code> indica <code>he</code>, <code>es</code>, <code>diff</code> y si la numeración coincide;
+        <code>es_ref</code> aparece cuando la cita de la RV1909 es distinta (Yoel, Malaquías).</li>
+  </ul>
+
+  <h2>Numeración hebrea vs. española</h2>
+  <p>El Tanaj y la RV1909 no parten igual todos los versículos. La API <strong>nunca mezcla</strong>: el hebreo conserva
+  la numeración masorética (23.213 versículos) y el español la suya (23.129). <code>/v1/align.json</code> documenta los
+  142 capítulos donde difieren:</p>
+  <ul>
+    <li><code>versiculo_desplazado</code> (135): el capítulo tiene distinto número de versículos (p. ej. <span class="he">בְּמִדְבַּר</span> 16: hebreo 35 / español 50).</li>
+    <li><code>capitulos_distintos</code> (7 en <span class="he">יוֹאֵל</span> y <span class="he">מַלְאָכִי</span>): el libro se parte en otros capítulos;
+        el español se reubica y cada versículo trae <code>es_ref</code> con su cita original.</li>
+  </ul>
+
+  <h2>CORS, caché y uso desde otra web</h2>
+  <p>GitHub Pages sirve JSON estático; si necesitas CORS explícito o caché inmutable por versión, usa el mismo
+  repositorio vía jsDelivr (añade <code>Access-Control-Allow-Origin: *</code> y <code>Cache-Control</code> largo):</p>
+  <pre><code>https://cdn.jsdelivr.net/gh/avisonofgod/avisonofgod.github.io@main/v1/he/bereshit/1.json</code></pre>
+  <p>Los archivos no cambian entre builds (si cambian, cambia el <code>sha256</code> del manifiesto), así que se pueden
+  cachear agresivamente. Para publicar una versión congelada, fija un tag: <code>@v1.0.0</code>.</p>
+
+  <h2>Fuentes y licencias</h2>
+  <ul>
+    <li><strong>Hebreo:</strong> Westminster Leningrad Codex con niqqud, te'amim y morfología —
+        <a href="https://github.com/openscriptures/morphhb" rel="noopener">openscriptures/morphhb</a>, licencia <strong>CC BY 4.0</strong>
+        (atribución al Open Scriptures Hebrew Bible Project).</li>
+    <li><strong>Español:</strong> Reina-Valera 1909, <strong>dominio público</strong>, vía
+        <a href="https://api.getbible.net/" rel="noopener">getbible v2</a>.</li>
+    <li>Sin versiones con licencia no comercial (p. ej. JPS) en este sitio.</li>
+  </ul>
+  <p class="muted">Al reutilizar el texto, conserva esta atribución. Los datos se generan con
+  <code>build/build_data.py</code> a partir de las fuentes citadas.</p>
+</main>
+</body>
+</html>
