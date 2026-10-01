@@ -28,6 +28,7 @@ build/                     generador (Python 3, solo biblioteca estándar)
   slugs.py                 los 39 libros: slug, nombres, sección, orden, alias
   wlc.py                   lector del WLC (OSIS) → texto con niqqud/te'amim en NFC
   curated.py               reglas para Yoel y Malaquías (capítulos repartidos distinto)
+  es_verses.py             enmiendas de texto en español sobre la RV1909 (data/ no se versiona)
   build_data.py            genera v1/ (y autocomprueba 929 capítulos / 23.213 versículos)
   verify_data.py           verificación de integridad, esquema y cobertura
 tests/

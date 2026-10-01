@@ -69,7 +69,7 @@ async function boot() {
   let rows = $$("#verses li");
   chk(rows.length === 31, "Génesis 1 trae 31 versículos", rows.length);
   chk(letters(rows[0].querySelector(".he").textContent).includes("בראשית ברא אלהים"), "primer versículo con hebreo");
-  chk(/EN el principio/i.test(rows[0].querySelector(".es").textContent), "y su español (RV1909)");
+  chk(/En el principio creó Elohim/i.test(rows[0].querySelector(".es").textContent), "y su español (RV1909 + enmienda)");
 
   // 4) enlace permanente a un versículo
   w.location.hash = "#/tehilim/23/1";

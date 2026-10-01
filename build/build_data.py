@@ -27,6 +27,7 @@ import unicodedata
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import curated                                  # noqa: E402
+import es_verses                                # noqa: E402
 import slugs                                    # noqa: E402
 import wlc                                      # noqa: E402
 
@@ -93,6 +94,7 @@ def build(args):
             sys.exit("falta la fuente hebrea: %s" % xml)
         he_chaps = wlc.parse_book(xml)
         es_chaps = es_src.get(book["rv1909"], {})
+        es_verses.apply(es_chaps, book["slug"])
 
         n_verses_he = sum(len(v) for v in he_chaps.values())
         n_verses_es = sum(len(v) for v in es_chaps.values())
@@ -106,6 +108,7 @@ def build(args):
         for num in sorted(he_chaps):
             verses = he_chaps[num]
             es = {v["n"]: v["es"] for v in es_chaps.get(num, [])}
+            es_ov = {v["n"] for v in es_chaps.get(num, []) if v.get("es_override")}
             if (args.lang in ("all", "es") and not es
                     and not curated.slice_es(es_chaps, book["slug"], num)):
                 missing_es.append("%s/%d" % (book["slug"], num))
@@ -134,7 +137,8 @@ def build(args):
                              % (book["slug"], num, len(verses), len(cur)))
                 es_rows = [{"n": n, "es": txt, "es_ref": ref} for n, txt, ref in cur]
             else:
-                es_rows = [{"n": n, "es": es[n]} for n in sorted(es)]
+                es_rows = [{"n": n, "es": es[n], **({"es_override": True} if n in es_ov else {})}
+                           for n in sorted(es)]
 
             if args.lang in ("all", "es") and (es_rows or []):
                 payload = {
