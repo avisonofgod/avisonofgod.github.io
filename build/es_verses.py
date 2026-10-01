@@ -12,6 +12,8 @@ El texto sustituye al de la RV1909 al generar v1/es/. Se anota en
 OVERRIDES = {
     "bereshit": {
         (1, 1): "En el principio creó Elohim los cielos y la tierra.",
+        (1, 2): "Pero la tierra estaba desierta y vacía, las tinieblas sobre el abismo "
+                "de las aguas, y el Espíritu de Dios aleteaba sobre la superficie de las aguas.",
     },
 }
 
