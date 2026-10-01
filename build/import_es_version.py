@@ -190,8 +190,6 @@ def main():
         capa["version"] = prev.get("version", capa["version"])
         capa["source"] = prev.get("source", capa["source"])
         capa["license"] = prev.get("license", capa["license"])
-    capa["books"] = libros
-
     # cobertura contra el hebreo ya construido
     existen = leer_versiones(a.out_json)
     faltan = []
@@ -207,6 +205,7 @@ def main():
         libros = {s: {c: v for c, v in caps.items() if v} for s, caps in libros.items()}
         libros = {s: c for s, c in libros.items() if c}
         n_versos -= len(faltan)
+    capa["books"] = libros
 
     print("version      : %s (%s)" % (capa.get("version"), capa.get("short")))
     print("libros       : %d" % len(libros))

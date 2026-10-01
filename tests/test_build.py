@@ -5,6 +5,7 @@
 import argparse
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import unicodedata
@@ -191,6 +192,23 @@ class TestVersionesES(unittest.TestCase):
         self.assertEqual(imp_es._por_rv1909("Génesis"), "bereshit")
         self.assertIsNone(imp_es._por_rv1909("Libro Inventado"))
         self.assertIn("Kapítulo", imp_es.parsear_versos("Kapítulo 1:1 texto")[1][0])
+
+    def test_importador_filtra_y_no_deja_huecos(self):
+        """La capa escrita no debe incluir versículos que no existen en el hebreo."""
+        with tempfile.TemporaryDirectory() as tmp:
+            entrada = os.path.join(tmp, "in.tsv")
+            with open(entrada, "w", encoding="utf-8") as fh:
+                fh.write("Génesis 1:1\ttexto válido\nGénesis 99:9\tfuera del Tanaj\n")
+            salida = os.path.join(tmp, "capa.json")
+            r = subprocess.run([sys.executable, os.path.join(RAIZ, "build", "import_es_version.py"),
+                                "--in", entrada, "--out", salida, "--version", "Prueba",
+                                "--license", "x", "--out-json", os.path.join(RAIZ, "v1")],
+                               capture_output=True, text=True, cwd=RAIZ)
+            capa = json.load(open(salida, encoding="utf-8"))
+            self.assertEqual(capa["books"], {"bereshit": {"1": {"1": "texto válido"}}})
+            self.assertNotEqual(r.returncode, 0, "avisa de la referencia sin hebreo")
+            self.assertIn("sin hebreo", r.stdout)
+            self.assertIn("99:9", r.stdout)
 
     @unittest.skipUnless(os.path.isdir(WLC_DIR), "faltan las fuentes: corre build/fetch_sources.sh")
     def test_build_es_marca_version(self):
