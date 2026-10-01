@@ -142,6 +142,27 @@ def main():
     check(len(align["chapters"]) > 0, "align.json documenta divergencias de numeración",
           len(align["chapters"]))
 
+    # 7) versiones españolas (enmiendas por versículo sobre la RV1909)
+    ver_p = os.path.join(OUT, "versions.json")
+    if not os.path.isfile(ver_p):
+        check(False, "versions.json presente", ver_p)
+    else:
+        ver = load(ver_p)
+        contados = {}
+        for book in idx["books"]:
+            slug = book["slug"]
+            for cap in range(1, book["chapters"] + 1):
+                ep = os.path.join(OUT, "es", slug, "%d.json" % cap)
+                if not os.path.isfile(ep):
+                    continue
+                for v in load(ep)["verses"]:
+                    if v.get("es_version"):
+                        contados[v["es_version"]] = contados.get(v["es_version"], 0) + 1
+        declarado = {v["short"]: v["verses_applied"] for v in ver["versions"] if v["verses_applied"]}
+        check(contados == declarado, "versions.json cuadra con los versículos marcados", contados)
+        check(all(v.get("license") for v in ver["versions"]),
+              "cada versión declara su licencia", len(ver["versions"]))
+
     print("\n== %d OK / %d FALLA ==" % (ok, len(fail)))
     if fail:
         for f in fail:

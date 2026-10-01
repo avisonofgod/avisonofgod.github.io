@@ -28,7 +28,9 @@ build/                     generador (Python 3, solo biblioteca estándar)
   slugs.py                 los 39 libros: slug, nombres, sección, orden, alias
   wlc.py                   lector del WLC (OSIS) → texto con niqqud/te'amim en NFC
   curated.py               reglas para Yoel y Malaquías (capítulos repartidos distinto)
-  es_verses.py             enmiendas de texto en español sobre la RV1909 (data/ no se versiona)
+  es_verses.py             carga y aplica las capas de texto en español sobre la RV1909
+  es_versions/             capas de traducción por versículo (JSON, versionado)
+  import_es_version.py     convierte PDF/EPUB/DOCX/CSV/JSON del usuario en una capa
   build_data.py            genera v1/ (y autocomprueba 929 capítulos / 23.213 versículos)
   verify_data.py           verificación de integridad, esquema y cobertura
 tests/
@@ -65,7 +67,32 @@ python3 -m http.server 8080        # y abrir http://localhost:8080/
 | `/v1/es/<slug>/<cap>.json` | capítulo español: `verses[].es`, `alignment`, `es_ref` cuando aplica |
 | `/v1/search/<sección>.json` | `[referencia, hebreo normalizado, español normalizado]` |
 | `/v1/align.json` | divergencias de numeración (142 capítulos) y libros con regla curada |
+| `/v1/versions.json` | capas de versión española: cita, licencia, versículos declarados/aplicados |
 | `/v1/manifest.json` | bytes y `sha256` por archivo |
+
+## Versiones en español distintas de la RV1909
+
+`data/valera.json` NO se versiona (se baja de getbible), así que todo texto español distinto
+vive en `build/es_versions/*.json` y se aplica versículo a versículo; el versículo tocado
+conserva su `es` y gana `es_version` (etiqueta corta) — nada se falsea y se ve el origen.
+
+```bash
+# de un archivo del usuario (PDF con capa de texto, EPUB, DOCX, CSV/TSV/JSON) a una capa
+python3 build/import_es_version.py --in katznelson.pdf --out build/es_versions/katznelson.json \
+    --version "Moisés Katznelson" --short Katznelson \
+    --source "La Biblia Hebrea, Editorial Sinai" --license "obra con derechos"
+python3 build/build_data.py --out v1 && python3 build/verify_data.py v1
+```
+
+Formato aceptado por el importador: una línea por versículo, `referencia` + separador
+(TAB, `;`, `,`) o espacio + texto; la referencia vale como `Génesis 1:1`, `Bereshit 1:1`,
+`Gen 1:1`… (se resuelve con `build/slugs.py`) y el texto puede continuar en líneas siguientes.
+El importador reporta libros, versículos y las referencias que no existen en el hebreo.
+
+Nota legal: la RV1909 es dominio público; **Moisés Katznelson (Editorial Sinai) es obra con
+derechos**, así que la capa `katznelson.json` solo lleva los versículos cotejados a mano y su
+licencia queda declarada en `v1/versions.json`. Una versión completa solo se integra con
+autorización del titular del texto.
 
 `<slug>` es el nombre hebreo transliterado (`bereshit`, `shemot`, `tehillim`…). El lector acepta
 alias (`genesis`, `exodo`, `salmos`, `1 samuel`) y los resuelve a la ruta canónica.

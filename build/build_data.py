@@ -77,6 +77,8 @@ def chapter_ref(book, num):
 def build(args):
     manifest = {}
     es_src = load_valera(args.valera) if args.lang in ("all", "es") else {}
+    capas_es = es_verses.load()
+    aplicados = {}          # etiqueta corta -> versículos escritos en v1/es
     targets = [b for b in slugs.BOOKS
                if not args.book or b["slug"] == args.book or b["osis"] == args.book]
     if not targets:
@@ -94,7 +96,7 @@ def build(args):
             sys.exit("falta la fuente hebrea: %s" % xml)
         he_chaps = wlc.parse_book(xml)
         es_chaps = es_src.get(book["rv1909"], {})
-        es_verses.apply(es_chaps, book["slug"])
+        es_verses.apply(es_chaps, book["slug"], capas_es)
 
         n_verses_he = sum(len(v) for v in he_chaps.values())
         n_verses_es = sum(len(v) for v in es_chaps.values())
@@ -108,7 +110,9 @@ def build(args):
         for num in sorted(he_chaps):
             verses = he_chaps[num]
             es = {v["n"]: v["es"] for v in es_chaps.get(num, [])}
-            es_ov = {v["n"] for v in es_chaps.get(num, []) if v.get("es_override")}
+            es_ov = {v["n"]: v["es_version"] for v in es_chaps.get(num, []) if v.get("es_version")}
+            for ver in es_ov.values():
+                aplicados[ver] = aplicados.get(ver, 0) + 1
             if (args.lang in ("all", "es") and not es
                     and not curated.slice_es(es_chaps, book["slug"], num)):
                 missing_es.append("%s/%d" % (book["slug"], num))
@@ -137,7 +141,7 @@ def build(args):
                              % (book["slug"], num, len(verses), len(cur)))
                 es_rows = [{"n": n, "es": txt, "es_ref": ref} for n, txt, ref in cur]
             else:
-                es_rows = [{"n": n, "es": es[n], **({"es_override": True} if n in es_ov else {})}
+                es_rows = [{"n": n, "es": es[n], **({"es_version": es_ov[n]} if n in es_ov else {})}
                            for n in sorted(es)]
 
             if args.lang in ("all", "es") and (es_rows or []):
@@ -217,11 +221,22 @@ def build(args):
         _idx["sources"] = {
             "he": "Westminster Leningrad Codex con morfología (openscriptures/morphhb, CC BY 4.0)",
             "es": "Reina-Valera 1909 (dominio público, getbible v2)",
+            "es_versions": [c["version"] for c in capas_es],
         }
         _idx["alignment"] = {"file": "align.json",
                              "chapters_with_divergence": len(alignment_rows),
                              "curated_books": sorted(curated.CURATED.keys())}
         write_json(os.path.join(args.out, "index.json"), _idx, manifest)
+        por_version = {c["version"]: aplicados.get(c["short"], 0) for c in capas_es}
+        write_json(os.path.join(args.out, "versions.json"), {
+            "note": ("Texto español base = RV1909 (dominio público). Cada capa de "
+                     "build/es_versions/ sustituye versículo a versículo y deja la marca "
+                     "`es_version` en el versículo; `verses_applied` = versículos ya escritos "
+                     "en v1/es. La versión completa solo entra si su titular lo autoriza."),
+            "base": {"version": "Reina-Valera 1909", "license": "dominio público",
+                     "source": "getbible v2 (api.getbible.net/v2/valera.json)"},
+            "versions": es_verses.payload(por_version, capas_es),
+        }, manifest)
         write_json(os.path.join(args.out, "manifest.json"),
                    {"generated_by": "build/build_data.py", "files": manifest,
                     "counts": dict(slugs.index_payload()["counts"], verses_es=tot_es_v)},

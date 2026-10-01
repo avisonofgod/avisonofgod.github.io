@@ -70,6 +70,9 @@ async function boot() {
   chk(rows.length === 31, "Génesis 1 trae 31 versículos", rows.length);
   chk(letters(rows[0].querySelector(".he").textContent).includes("בראשית ברא אלהים"), "primer versículo con hebreo");
   chk(/En el principio creó Elohim/i.test(rows[0].querySelector(".es").textContent), "y su español (RV1909 + enmienda)");
+  chk((rows[0].querySelector(".es small.ver") || {}).textContent === "Katznelson",
+      "versículo marcado con la versión", (rows[0].querySelector(".es small.ver") || {}).textContent);
+  chk(/2 en Katznelson/.test($("#meta").textContent), "meta cuenta los versículos de la versión", $("#meta").textContent);
 
   // 4) enlace permanente a un versículo
   w.location.hash = "#/tehilim/23/1";

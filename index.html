@@ -81,6 +81,7 @@ ol.verses li:target, ol.verses li.hit { background: var(--mark); }
 .he { direction: rtl; text-align: right; font-family: "Times New Roman", "Ezra SIL", "SBL Hebrew", serif;
       font-size: var(--hi); line-height: 1.85; color: var(--he); }
 .he .marker { color: var(--muted); font-size: .7em; }
+.es small.ver { color: var(--accent); font-size: .75em; white-space: nowrap; }
 .es { margin-top: 2px; }
 body.no-niqqud .he { /* el niqqud se quita al mostrar he_plain */ }
 .verse-tools { margin-top: 3px; display: flex; gap: 8px; opacity: 0; transition: opacity .15s; }
@@ -158,6 +159,8 @@ footer a { color: var(--accent); }
   vía <a href="https://github.com/openscriptures/morphhb" rel="noopener">openscriptures/morphhb</a>
   (CC BY 4.0). Español: <em>Reina-Valera 1909</em> (dominio público) vía
   <a href="https://api.getbible.net/" rel="noopener">getbible v2</a>.
+  Versículos cotejados con <em>Moisés Katznelson</em> (obra con derechos) van marcados uno a uno;
+  el detalle está en <a href="/v1/versions.json">/v1/versions.json</a>.
   Secciones: Torá (5 libros), Nevi'im (21), Ketuvim (13) — 929 capítulos, 23.213 versículos.</p>
   <p>API JSON de solo lectura en <a href="/v1/index.json">/v1/index.json</a> ·
   documentación en <a href="api.html">api.html</a> ·
@@ -228,8 +231,11 @@ function renderChapter(he, es) {
   $("#titulo").textContent = b.es + " " + state.chapter;
   $("#titulo-he").textContent = b.he + " " + state.chapter;
   const sameNum = es ? (es.alignment.same_numbering !== false) : true;
+  const conVersion = es ? es.verses.filter((v) => v.es_version) : [];
+  const nombreVer = conVersion.length ? conVersion[0].es_version : "";
   $("#meta").textContent = b.he + " · " + he.counts.verses + " versículos" +
-    (es ? " · RV1909 " + es.counts.verses + " versículos" : " · sin texto en español");
+    (es ? " · RV1909 " + es.counts.verses + " versículos" : " · sin texto en español") +
+    (conVersion.length ? " · " + conVersion.length + " en " + nombreVer : "");
   $("#api").href = "/" + chapterURL("he", state.slug, state.chapter);
   let aviso = "";
   if (es && !sameNum) {
@@ -241,6 +247,12 @@ function renderChapter(he, es) {
   } else if (es && es.verses.some((v) => v.es_ref)) {
     aviso = "<div class='note'>Malaquías/Yoel: la cita del español se reubicó al capítulo hebreo; " +
       "el superíndice muestra la referencia original de la RV1909.</div>";
+  }
+  if (conVersion.length) {
+    aviso += "<div class='note'>Texto español: " + conVersion.length +
+      (conVersion.length === 1 ? " versículo de " : " versículos de ") + esc(nombreVer) +
+      " (marca al final del versículo); el resto es RV1909. " +
+      "Detalle en <a href='/v1/versions.json'>versions.json</a>.</div>";
   }
   $("#aviso").innerHTML = aviso;
 
@@ -261,7 +273,9 @@ function row(hv, ev) {
   return "<li id='" + id + "' data-n='" + n + "'>" +
     "<div class='num'>" + n + "</div><div>" +
     "<div class='he'>" + (hv ? verseHe(hv) : "<em>—</em>") + "</div>" +
-    "<div class='es'>" + (ev ? esc(ev.es) + (ev.es_ref ? " <small>(" + esc(ev.es_ref) + ")</small>" : "") : "") + "</div>" +
+    "<div class='es'>" + (ev ? esc(ev.es) +
+      (ev.es_ref ? " <small>(" + esc(ev.es_ref) + ")</small>" : "") +
+      (ev.es_version ? " <small class='ver'>" + esc(ev.es_version) + "</small>" : "") : "") + "</div>" +
     "<div class='verse-tools'><button data-copy='" + n + "'>Copiar</button>" +
     "<button data-link='" + n + "'>Enlace</button></div></div></li>";
 }

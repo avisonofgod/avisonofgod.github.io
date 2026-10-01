@@ -1,8 +1,9 @@
 /* Service worker del lector del Tanaj: textos guardados para leer sin conexión.
    Estrategia: `v1/` cache-primero (los datos no cambian sin un nuevo build),
    el resto red-primero con respaldo en caché. */
-const CACHE = "tanaj-v1.3";
-const CORE = ["./", "index.html", "api.html", "manifest.webmanifest", "v1/index.json", "v1/align.json"];
+const CACHE = "tanaj-v1.4";
+const CORE = ["./", "index.html", "api.html", "manifest.webmanifest", "v1/index.json",
+              "v1/align.json", "v1/versions.json"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));

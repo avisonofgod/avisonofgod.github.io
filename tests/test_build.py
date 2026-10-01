@@ -16,6 +16,8 @@ sys.path.insert(0, os.path.join(RAIZ, "build"))
 
 import build_data                                    # noqa: E402
 import curated                                       # noqa: E402
+import es_verses                                     # noqa: E402
+import import_es_version as imp_es                   # noqa: E402
 import slugs                                         # noqa: E402
 import wlc                                           # noqa: E402
 
@@ -120,6 +122,87 @@ class TestBuild(unittest.TestCase):
             self.assertEqual(d["alignment"]["he"], 5)
             self.assertTrue(d["alignment"]["curated"])
             self.assertEqual(d["verses"][0]["es_ref"], "2:28")
+
+
+class TestVersionesES(unittest.TestCase):
+    """Capas de versión española (build/es_versions/) sobre la RV1909."""
+
+    def test_capa_katznelson_declarada(self):
+        capas = es_verses.load()
+        nombres = [c["version"] for c in capas]
+        self.assertIn("Moisés Katznelson", nombres)
+        capa = [c for c in capas if c["version"] == "Moisés Katznelson"][0]
+        self.assertEqual(capa["verses"][("bereshit", 1, 1)],
+                         "En el principio creó Elohim los cielos y la tierra.")
+        self.assertTrue(capa["license"], "la capa declara su licencia")
+        self.assertTrue(capa["file"].endswith(".json"))
+
+    def test_apply_marca_es_version(self):
+        chaps = {1: [{"n": 1, "es": "EN el principio crió Dios los cielos y la tierra."},
+                     {"n": 2, "es": "Y la tierra estaba desordenada y vacía."},
+                     {"n": 3, "es": "Y dijo Dios: Sea la luz."}]}
+        self.assertEqual(es_verses.apply(chaps, "bereshit"), 2)
+        self.assertEqual(chaps[1][0]["es_version"], "Katznelson")
+        self.assertEqual(chaps[1][1]["es_version"], "Katznelson")
+        self.assertNotIn("es_version", chaps[1][2])
+        primera = chaps[1][1]["es"]
+        es_verses.apply(chaps, "bereshit")          # idempotente
+        self.assertEqual(chaps[1][1]["es"], primera)
+        otro = {1: [{"n": 1, "es": "x"}]}
+        self.assertEqual(es_verses.apply(otro, "shemot"), 0)
+        self.assertEqual(otro[1][0]["es"], "x")
+
+    def test_payload_declara_y_aplica(self):
+        capas = es_verses.load()
+        payload = {c["version"]: c for c in es_verses.payload({"Moisés Katznelson": 2}, capas)}
+        k = payload["Moisés Katznelson"]
+        self.assertEqual(k["verses_declared"], 2)
+        self.assertEqual(k["verses_applied"], 2)
+        self.assertTrue(k["file"].startswith("build/es_versions/"))
+        self.assertEqual(payload["Moisés Katznelson"]["short"], "Katznelson")
+
+    def test_carga_ignora_json_ajenos(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with open(os.path.join(tmp, "otro.json"), "w", encoding="utf-8") as fh:
+                fh.write('{"foo": 1}')
+            with open(os.path.join(tmp, "roto.json"), "w", encoding="utf-8") as fh:
+                fh.write("{no es json")
+            with open(os.path.join(tmp, "capa.json"), "w", encoding="utf-8") as fh:
+                json.dump({"version": "Prueba", "short": "Prueba",
+                           "books": {"bereshit": {"1": {"1": "texto"}},
+                                     "libro_inventado": {"1": {"1": "x"}}}}, fh)
+            capas = es_verses.load(tmp)
+            self.assertEqual([c["version"] for c in capas], ["Prueba"], "solo la capa válida")
+            self.assertEqual(capas[0]["verses"], {("bereshit", 1, 1): "texto"},
+                             "el libro desconocido se descarta")
+
+    def test_importador_parsea_referencias(self):
+        versos, malas = imp_es.parsear_versos(
+            "Génesis 1:1\tEn el principio creó Elohim\n"
+            "Bereshit 1:2 Pero la tierra\n   desierta y vacía\n"
+            "basura sin referencia\n")
+        self.assertEqual(versos[("bereshit", 1, 1)], "En el principio creó Elohim")
+        self.assertEqual(versos[("bereshit", 1, 2)],
+                         "Pero la tierra desierta y vacía basura sin referencia",
+                         "las líneas sin referencia se acumulan al versículo anterior")
+        self.assertEqual(malas, [], "ninguna línea se descarta")
+        self.assertEqual(imp_es.parsear_versos("Salmos 23:1 YHVH es mi pastor")[0],
+                         {("tehilim", 23, 1): "YHVH es mi pastor"})
+        self.assertEqual(imp_es._por_rv1909("Génesis"), "bereshit")
+        self.assertIsNone(imp_es._por_rv1909("Libro Inventado"))
+        self.assertIn("Kapítulo", imp_es.parsear_versos("Kapítulo 1:1 texto")[1][0])
+
+    @unittest.skipUnless(os.path.isdir(WLC_DIR), "faltan las fuentes: corre build/fetch_sources.sh")
+    def test_build_es_marca_version(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            args = argparse.Namespace(wlc=WLC_DIR, valera=VALERA, out=tmp, lang="es",
+                                      book="bereshit", books=False, no_check=False)
+            build_data.build(args)
+            d = json.load(open(os.path.join(tmp, "es", "bereshit", "1.json")))
+            self.assertEqual(d["verses"][0]["es_version"], "Katznelson")
+            self.assertEqual(d["verses"][1]["es_version"], "Katznelson")
+            self.assertNotIn("es_version", d["verses"][2])
+            self.assertEqual(d["verses"][2]["es"], "Y dijo Dios: Sea la luz: y fué la luz.")
 
 
 if __name__ == "__main__":

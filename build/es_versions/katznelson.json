@@ -1,0 +1,15 @@
+{
+  "version": "Moisés Katznelson",
+  "short": "Katznelson",
+  "source": "La Biblia Hebrea — versión castellana conforme a la tradición judía (Moisés Katznelson, Editorial Sinai)",
+  "license": "obra con derechos de autor; se cita por versículo, sin licencia de redistribución del texto completo",
+  "note": "Capa parcial: solo los versículos cotejados a mano. El resto del español sigue siendo RV1909.",
+  "books": {
+    "bereshit": {
+      "1": {
+        "1": "En el principio creó Elohim los cielos y la tierra.",
+        "2": "Pero la tierra estaba desierta y vacía, las tinieblas sobre el abismo de las aguas, y el Espíritu de Dios aleteaba sobre la superficie de las aguas."
+      }
+    }
+  }
+}
