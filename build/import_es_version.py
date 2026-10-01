@@ -18,9 +18,10 @@ La referencia puede escribirse como quieras: "Génesis 1:1", "Bereshit 1:1",
 nombre de la RV1909). Se valida contra v1/he/ y se reporta cobertura y huecos.
 
 Uso:
-  python3 build/import_es_version.py --in katznelson.pdf --version "Moisés Katznelson" \
-      --short Katznelson --source "Editorial Sinai" --license "con derechos" \
-      --out build/es_versions/katznelson.json [--merge] [--dry-run]
+  python3 build/import_es_version.py --in revision.pdf --version "1.0" --short v1.0 \
+      --author Obadias --source "Revisión de Obadias sobre la RV1909" \
+      --license "CC0 1.0 Universal" --spdx CC0-1.0 \
+      --out build/es_versions/obadias-v1.0.json [--merge] [--dry-run]
 """
 
 import argparse
@@ -141,8 +142,10 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--version", required=True)
     ap.add_argument("--short", default=None)
+    ap.add_argument("--author", default="")
     ap.add_argument("--source", default="")
     ap.add_argument("--license", default="")
+    ap.add_argument("--spdx", default="")
     ap.add_argument("--note", default="")
     ap.add_argument("--out-json", default=os.path.join(RAIZ, "v1"), help="v1/ para validar cobertura")
     ap.add_argument("--merge", action="store_true", help="fusiona con el --out existente")
@@ -176,8 +179,8 @@ def main():
         libros = {}
         for (slug, cap, n), txt in sorted(versos.items()):
             libros.setdefault(slug, {}).setdefault(str(cap), {})[str(n)] = txt
-        capa = {"version": a.version, "short": a.short or a.version,
-                "source": a.source, "license": a.license, "note": a.note}
+        capa = {"version": a.version, "short": a.short or a.version, "author": a.author,
+                "source": a.source, "license": a.license, "spdx": a.spdx, "note": a.note}
         n_versos = len(versos)
 
     if a.merge and os.path.isfile(a.out):

@@ -232,7 +232,7 @@ def build(args):
             "note": ("Texto español base = RV1909 (dominio público). Cada capa de "
                      "build/es_versions/ sustituye versículo a versículo y deja la marca "
                      "`es_version` en el versículo; `verses_applied` = versículos ya escritos "
-                     "en v1/es. La versión completa solo entra si su titular lo autoriza."),
+                     "en v1/es. Las capas son propias (autor + licencia libres declaradas)."),
             "base": {"version": "Reina-Valera 1909", "license": "dominio público",
                      "source": "getbible v2 (api.getbible.net/v2/valera.json)"},
             "versions": es_verses.payload(por_version, capas_es),

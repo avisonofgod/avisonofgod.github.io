@@ -70,29 +70,33 @@ python3 -m http.server 8080        # y abrir http://localhost:8080/
 | `/v1/versions.json` | capas de versión española: cita, licencia, versículos declarados/aplicados |
 | `/v1/manifest.json` | bytes y `sha256` por archivo |
 
-## Versiones en español distintas de la RV1909
+## Versión 1.0 (autor Obadias) sobre la RV1909
 
-`data/valera.json` NO se versiona (se baja de getbible), así que todo texto español distinto
+`data/valera.json` NO se versiona (se baja de getbible), así que todo texto español propio
 vive en `build/es_versions/*.json` y se aplica versículo a versículo; el versículo tocado
-conserva su `es` y gana `es_version` (etiqueta corta) — nada se falsea y se ve el origen.
+conserva su `es` y gana `es_version` (etiqueta corta) — nada se falsea y se ve el avance.
+
+La capa activa es `build/es_versions/obadias-v1.0.json`: versión `1.0`, autor `Obadias`,
+licencia **CC0 1.0 Universal** (`spdx: CC0-1.0`, dedicación al dominio público — la más libre,
+sin condiciones). Se reescribe poco a poco: hoy Bereshit 1:1-1:2, el resto sigue en RV1909.
+`v1/versions.json` publica autor, licencia, versículos declarados y aplicados.
 
 ```bash
-# de un archivo del usuario (PDF con capa de texto, EPUB, DOCX, CSV/TSV/JSON) a una capa
-python3 build/import_es_version.py --in katznelson.pdf --out build/es_versions/katznelson.json \
-    --version "Moisés Katznelson" --short Katznelson \
-    --source "La Biblia Hebrea, Editorial Sinai" --license "obra con derechos"
+# de un archivo propio (PDF con capa de texto, EPUB, DOCX, CSV/TSV/JSON) a una capa
+python3 build/import_es_version.py --in revision.pdf --out build/es_versions/obadias-v1.0.json \
+    --version "1.0" --short v1.0 --author Obadias --merge \
+    --source "Revisión de Obadias sobre la RV1909" \
+    --license "CC0 1.0 Universal" --spdx CC0-1.0
 python3 build/build_data.py --out v1 && python3 build/verify_data.py v1
 ```
 
 Formato aceptado por el importador: una línea por versículo, `referencia` + separador
 (TAB, `;`, `,`) o espacio + texto; la referencia vale como `Génesis 1:1`, `Bereshit 1:1`,
-`Gen 1:1`… (se resuelve con `build/slugs.py`) y el texto puede continuar en líneas siguientes.
-El importador reporta libros, versículos y las referencias que no existen en el hebreo.
+`Gen 1:1`… (se resuelve con `build/slugs.py`), el texto puede continuar en líneas siguientes
+y las referencias que no existen en el hebreo se descartan (el importador las reporta).
 
-Nota legal: la RV1909 es dominio público; **Moisés Katznelson (Editorial Sinai) es obra con
-derechos**, así que la capa `katznelson.json` solo lleva los versículos cotejados a mano y su
-licencia queda declarada en `v1/versions.json`. Una versión completa solo se integra con
-autorización del titular del texto.
+Nota legal: la RV1909 y el hebreo (WLC, CC BY 4.0) ya son libres; la capa de revisión propia
+se publica bajo **CC0 1.0** para que el conjunto quede sin restricciones.
 
 `<slug>` es el nombre hebreo transliterado (`bereshit`, `shemot`, `tehillim`…). El lector acepta
 alias (`genesis`, `exodo`, `salmos`, `1 samuel`) y los resuelve a la ruta canónica.

@@ -131,11 +131,13 @@ class TestVersionesES(unittest.TestCase):
     def test_capa_katznelson_declarada(self):
         capas = es_verses.load()
         nombres = [c["version"] for c in capas]
-        self.assertIn("Moisés Katznelson", nombres)
-        capa = [c for c in capas if c["version"] == "Moisés Katznelson"][0]
+        self.assertIn("1.0", nombres)
+        capa = [c for c in capas if c["version"] == "1.0"][0]
         self.assertEqual(capa["verses"][("bereshit", 1, 1)],
                          "En el principio creó Elohim los cielos y la tierra.")
-        self.assertTrue(capa["license"], "la capa declara su licencia")
+        self.assertEqual(capa["author"], "Obadias")
+        self.assertTrue(capa["spdx"], "la capa declara licencia SPDX")
+        self.assertIn("CC0", capa["license"])
         self.assertTrue(capa["file"].endswith(".json"))
 
     def test_apply_marca_es_version(self):
@@ -143,8 +145,8 @@ class TestVersionesES(unittest.TestCase):
                      {"n": 2, "es": "Y la tierra estaba desordenada y vacía."},
                      {"n": 3, "es": "Y dijo Dios: Sea la luz."}]}
         self.assertEqual(es_verses.apply(chaps, "bereshit"), 2)
-        self.assertEqual(chaps[1][0]["es_version"], "Katznelson")
-        self.assertEqual(chaps[1][1]["es_version"], "Katznelson")
+        self.assertEqual(chaps[1][0]["es_version"], "v1.0")
+        self.assertEqual(chaps[1][1]["es_version"], "v1.0")
         self.assertNotIn("es_version", chaps[1][2])
         primera = chaps[1][1]["es"]
         es_verses.apply(chaps, "bereshit")          # idempotente
@@ -155,12 +157,14 @@ class TestVersionesES(unittest.TestCase):
 
     def test_payload_declara_y_aplica(self):
         capas = es_verses.load()
-        payload = {c["version"]: c for c in es_verses.payload({"Moisés Katznelson": 2}, capas)}
-        k = payload["Moisés Katznelson"]
+        payload = {c["version"]: c for c in es_verses.payload({"1.0": 2}, capas)}
+        k = payload["1.0"]
         self.assertEqual(k["verses_declared"], 2)
         self.assertEqual(k["verses_applied"], 2)
         self.assertTrue(k["file"].startswith("build/es_versions/"))
-        self.assertEqual(payload["Moisés Katznelson"]["short"], "Katznelson")
+        self.assertEqual(k["short"], "v1.0")
+        self.assertEqual(k["author"], "Obadias")
+        self.assertEqual(k["spdx"], "CC0-1.0")
 
     def test_carga_ignora_json_ajenos(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -217,8 +221,8 @@ class TestVersionesES(unittest.TestCase):
                                       book="bereshit", books=False, no_check=False)
             build_data.build(args)
             d = json.load(open(os.path.join(tmp, "es", "bereshit", "1.json")))
-            self.assertEqual(d["verses"][0]["es_version"], "Katznelson")
-            self.assertEqual(d["verses"][1]["es_version"], "Katznelson")
+            self.assertEqual(d["verses"][0]["es_version"], "v1.0")
+            self.assertEqual(d["verses"][1]["es_version"], "v1.0")
             self.assertNotIn("es_version", d["verses"][2])
             self.assertEqual(d["verses"][2]["es"], "Y dijo Dios: Sea la luz: y fué la luz.")
 

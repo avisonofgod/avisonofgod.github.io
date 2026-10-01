@@ -7,10 +7,12 @@ sí se versiona. Así el build es reproducible: mismas fuentes -> mismo v1/.
 Formato de cada archivo (`build/es_versions/<nombre>.json`):
 
     {
-      "version": "Moisés Katznelson",      # nombre completo, va en v1/versions.json
-      "short": "Katznelson",               # etiqueta corta, va por versículo (es_version)
+      "version": "1.0",                    # nombre de la versión, va en v1/versions.json
+      "short": "v1.0",                     # etiqueta corta, va por versículo (es_version)
+      "author": "Obadias",                 # quién hizo la revisión
       "source": "…",                       # cita bibliográfica
-      "license": "…",                      # condiciones de uso / derechos
+      "license": "CC0 1.0 Universal…",     # condiciones de uso / derechos
+      "spdx": "CC0-1.0",                   # identificador de licencia
       "note": "…",                         # opcional
       "books": {"bereshit": {"1": {"1": "texto", "2": "texto"}}}
     }
@@ -71,8 +73,10 @@ def load(dirpath=None):
             "file": nombre,
             "version": raw.get("version") or nombre[:-5],
             "short": raw.get("short") or raw.get("version") or nombre[:-5],
+            "author": raw.get("author") or "",
             "source": raw.get("source") or "",
             "license": raw.get("license") or "",
+            "spdx": raw.get("spdx") or "",
             "note": raw.get("note") or "",
             "verses": versos,
         })
@@ -115,8 +119,10 @@ def payload(applied, capas=None):
         out.append({
             "version": c["version"],
             "short": c["short"],
+            "author": c["author"],
             "source": c["source"],
             "license": c["license"],
+            "spdx": c["spdx"],
             "file": "build/es_versions/" + c["file"],
             "verses_declared": len(c["verses"]),
             "verses_applied": applied.get(c["version"], 0),

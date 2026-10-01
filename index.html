@@ -159,8 +159,8 @@ footer a { color: var(--accent); }
   vía <a href="https://github.com/openscriptures/morphhb" rel="noopener">openscriptures/morphhb</a>
   (CC BY 4.0). Español: <em>Reina-Valera 1909</em> (dominio público) vía
   <a href="https://api.getbible.net/" rel="noopener">getbible v2</a>.
-  Versículos cotejados con <em>Moisés Katznelson</em> (obra con derechos) van marcados uno a uno;
-  el detalle está en <a href="/v1/versions.json">/v1/versions.json</a>.
+  Los versículos revisados (versión <em>1.0</em>, autor <em>Obadias</em>, CC0) van marcados
+  uno a uno; autor, licencia y avance están en <a href="/v1/versions.json">/v1/versions.json</a>.
   Secciones: Torá (5 libros), Nevi'im (21), Ketuvim (13) — 929 capítulos, 23.213 versículos.</p>
   <p>API JSON de solo lectura en <a href="/v1/index.json">/v1/index.json</a> ·
   documentación en <a href="api.html">api.html</a> ·
@@ -251,8 +251,8 @@ function renderChapter(he, es) {
   if (conVersion.length) {
     aviso += "<div class='note'>Texto español: " + conVersion.length +
       (conVersion.length === 1 ? " versículo de " : " versículos de ") + esc(nombreVer) +
-      " (marca al final del versículo); el resto es RV1909. " +
-      "Detalle en <a href='/v1/versions.json'>versions.json</a>.</div>";
+      " (marca al final del versículo); el resto es RV1909. Autor y licencia en " +
+      "<a href='/v1/versions.json'>versions.json</a>.</div>";
   }
   $("#aviso").innerHTML = aviso;
 

@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "short": "v1.0",
+  "author": "Obadias",
+  "source": "Revisión de Obadias sobre la Reina-Valera 1909",
+  "license": "CC0 1.0 Universal (dedicación al dominio público)",
+  "spdx": "CC0-1.0",
+  "note": "Revisión de los primeros capítulos. El resto del español sigue siendo la RV1909.",
+  "books": {
+    "bereshit": {
+      "1": {
+        "1": "En el principio creó Elohim los cielos y la tierra.",
+        "2": "Pero la tierra estaba desierta y vacía, las tinieblas sobre el abismo de las aguas, y el Espíritu de Dios aleteaba sobre la superficie de las aguas."
+      }
+    }
+  }
+}
