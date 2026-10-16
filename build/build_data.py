@@ -29,7 +29,8 @@ import unicodedata
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import curated                                  # noqa: E402
-import es_verses                                # noqa: E402
+import es_verses
+import letras                                # noqa: E402
 import slugs                                    # noqa: E402
 import wlc                                      # noqa: E402
 
@@ -302,6 +303,9 @@ def build(args):
                  "chapters": {"he": he_chaps, "es": es_chaps}},
                 manifest)
 
+    # abecedario con lectura pictográfica: tabla estática, se escribe también en build parcial
+    total_bytes += write_json(os.path.join(args.out, "letras.json"), letras.payload(), manifest)
+
     for section, rows in search.items():
         if not rows:
             continue
@@ -333,6 +337,7 @@ def build(args):
             "es_strong": (strong.get("scope") or "relación palabra hebrea <-> traducción "
                           "— capa propia v1.0 %s (CC0)" % strong.get("author"))
             if strong else None,
+            "letras": "abecedario hebreo con lectura pictográfica (build/letras.py, CC0)",
         }
         _idx["alignment"] = {"file": "align.json",
                              "chapters_with_divergence": len(alignment_rows),

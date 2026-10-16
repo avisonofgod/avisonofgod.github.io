@@ -154,6 +154,26 @@ def main():
     check(total_he == 23213, "suma de versículos hebreos recorridos", total_he)
     check(total_es == c.get("verses_es"), "suma de versículos españoles", total_es)
 
+    # 4b) abecedario hebreo (lectura pictográfica)
+    p_letras = os.path.join(OUT, "letras.json")
+    malas_letras = []
+    if not os.path.isfile(p_letras):
+        malas_letras.append("falta letras.json")
+    else:
+        d = load(p_letras)
+        letras, orden, finales = d.get("letters", {}), d.get("order", []), d.get("finals", {})
+        if len(letras) != 22 or len(orden) != 22 or sorted(orden) != sorted(letras):
+            malas_letras.append("22 letras y su orden")
+        for letra, v in letras.items():
+            if not (v.get("nombre") and v.get("pictograma")):
+                malas_letras.append("%s sin nombre/pictograma" % letra)
+            if v.get("orden") != orden.index(letra) + 1:
+                malas_letras.append("%s con orden raro" % letra)
+        if len(finales) != 5 or set(finales.values()) - set(letras):
+            malas_letras.append("formas finales")
+    check(not malas_letras, "abecedario hebreo (22 letras + 5 finales, con pictografía)",
+          malas_letras[:3] or "letras.json")
+
     # 5) cobertura de los índices de búsqueda
     bad_search = 0
     searched = 0

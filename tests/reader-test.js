@@ -204,6 +204,34 @@ async function boot() {
       "versículo sin versión propia: sin componentes",
       li3.querySelectorAll(".w").length);
 
+  // 13) desglose por letra de la palabra seleccionada (panel dentro del nav)
+  chk(!!$("#letras") && !!$("#nav").querySelector("section.letras"),
+      "el nav trae el panel de letras",
+      $("#letras") && $("#letras").querySelector("h2").textContent);
+  resh.dispatchEvent(new w.Event("click", { bubbles: true }));
+  await wait(80);
+  const filas = Array.from($("#letras").querySelectorAll("li"));
+  chk(filas.length === 5, "רֵאשִׁית se descompone en 5 letras", filas.length);
+  chk(filas.map((f) => f.querySelector(".heb").textContent).join("") === "ראשית",
+      "letras en orden: Resh, Aleph, Shin, Yod, Tav",
+      filas.map((f) => f.querySelector("b").textContent).join(" "));
+  chk(/Resh/.test(filas[0].textContent) && /El primero, el l\u00edder, la persona principal/.test(filas[0].textContent),
+      "Resh -> «El primero, el líder, la persona principal»", filas[0].textContent.trim());
+  bet.dispatchEvent(new w.Event("click", { bubbles: true }));
+  await wait(80);
+  const filaBet = $("#letras").querySelector("li");
+  chk(!!filaBet && /Bet/.test(filaBet.textContent) && /Familia, dentro, el hogar/.test(filaBet.textContent),
+      "בְּ -> Bet -> «Familia, dentro, el hogar»", filaBet && filaBet.textContent.trim());
+  const laEs = esPal.find((e) => e.textContent === "la");
+  laEs.dispatchEvent(new w.Event("click", { bubbles: true }));
+  await wait(80);
+  chk($("#letras").querySelectorAll("li").length === 1,
+      "desde el español se desglosa su componente hebreo (הָ -> He)",
+      $("#letras").textContent.replace(/\s+/g, " ").slice(0, 70));
+  chk($("#letras").querySelector("li") === $("#letras").querySelectorAll("li")[0] &&
+      /He/.test($("#letras").textContent), "He -> «Ventana, he aquí, revelar, aliento»",
+      $("#letras").querySelector("li").textContent.trim());
+
   // copiar sigue trayendo el texto completo (los spans no lo rompen)
   li1.querySelector("[data-copy]").dispatchEvent(new w.Event("click", { bubbles: true }));
   chk(/En el principio creó Elohim/.test(w.__clip || ""), "Copiar incluye el español",

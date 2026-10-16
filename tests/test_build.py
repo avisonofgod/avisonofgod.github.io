@@ -17,12 +17,14 @@ sys.path.insert(0, os.path.join(RAIZ, "build"))
 
 import build_data                                    # noqa: E402
 import curated                                       # noqa: E402
-import es_verses                                     # noqa: E402
+import es_verses
+import letras                                     # noqa: E402
 import import_es_version as imp_es                   # noqa: E402
 import slugs                                         # noqa: E402
 import wlc                                           # noqa: E402
 
 WLC_DIR = os.path.join(RAIZ, "data", "morphhb", "wlc")
+OUT_DIR = os.path.join(RAIZ, "v1")
 VALERA = os.path.join(RAIZ, "data", "valera.json")
 
 
@@ -228,6 +230,37 @@ class TestVersionesES(unittest.TestCase):
             self.assertEqual(d["verses"][1]["es_version"], "v1.0")
             self.assertNotIn("es_version", d["verses"][2])
             self.assertEqual(d["verses"][2]["es"], "Y dijo Dios: Sea la luz: y fué la luz.")
+
+
+class TestLetrasHebreas(unittest.TestCase):
+    """Abecedario con lectura pictográfica: build/letras.py -> v1/letras.json."""
+
+    def test_tabla_de_letras(self):
+        p = os.path.join(os.path.dirname(build_data.__file__), "letras.py")
+        self.assertTrue(os.path.isfile(p), "fuente única en build/letras.py")
+        d = letras.payload()
+        self.assertEqual(len(d["letters"]), 22)
+        self.assertEqual(len(d["order"]), 22)
+        for letra, v in d["letters"].items():
+            self.assertIn(letra, d["order"])
+            self.assertTrue(v["nombre"] and v["pictograma"], letra)
+        self.assertEqual(d["finals"], {"ך": "כ", "ם": "מ", "ן": "נ", "ף": "פ", "ץ": "צ"})
+        self.assertEqual(d["letters"]["ב"]["nombre"], "Bet")
+        self.assertEqual(d["letters"]["ב"]["pictograma"], "Familia, dentro, el hogar")
+        self.assertEqual(d["letters"]["ר"]["pictograma"],
+                         "El primero, el líder, la persona principal")
+
+    def test_publicado_en_v1(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            args = argparse.Namespace(wlc=WLC_DIR, valera=VALERA, out=tmp, lang="all",
+                                      book="bereshit", books=False, no_check=True,
+                                      strong=build_data.STRONG_LAYER, no_strong=False)
+            build_data.build(args)
+            d = json.load(open(os.path.join(tmp, "letras.json"), encoding="utf-8"))
+            self.assertEqual(len(d["letters"]), 22)
+            self.assertEqual(d["letters"]["ר"]["nombre"], "Resh")
+            idx = json.load(open(os.path.join(OUT_DIR, "index.json"), encoding="utf-8"))
+            self.assertIn("letras", idx["sources"], "fuente declarada en /v1/index.json")
 
 
 class TestStrongDelEspanol(unittest.TestCase):

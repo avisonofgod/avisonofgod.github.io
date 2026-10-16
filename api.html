@@ -106,6 +106,14 @@ curl -s -o /dev/null -w "%{http_code}\n" https://avisonofgod.github.io/v1/he/gen
   (H7225 → «principio»); «el» queda sin pareja. Declaración y estadísticas en
   <a href="/v1/versions.json">/v1/versions.json</a> (<code>strong_layer</code>).</p>
 
+  <h2>Abecedario con lectura pictográfica</h2>
+  <p><a href="/v1/letras.json">/v1/letras.json</a> publica las 22 letras hebreas con su nombre y su
+  lectura pictográfica tradicional (referencia simbólica, CC0; tabla propia en
+  <code>build/letras.py</code>, no son números de Strong). Las formas finales (<code>ך ם ן ף ץ</code>)
+  se resuelven a su letra base y el niqqud no se lista. El lector lo usa para mostrar, hacia abajo y
+  una por línea, las letras de la palabra o del componente seleccionado:
+  <em>רֵאשִׁית</em> → Resh (el primero, el líder) · Aleph · Shin · Yod · Tav.</p>
+
   <h2>Numeración hebrea vs. española</h2>
   <p>El Tanaj y la RV1909 no parten igual todos los versículos. La API <strong>nunca mezcla</strong>: el hebreo conserva
   la numeración masorética (23.213 versículos) y el español la suya (23.129). <code>/v1/align.json</code> documenta los

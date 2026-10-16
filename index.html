@@ -90,6 +90,17 @@ ol.verses li:target, ol.verses li.hit { background: var(--mark); }
            var(--mark) 94%, transparent 94%); }
 #marca-info { color: var(--muted); font-size: .85rem; }
 #marca-info b { color: var(--accent); }
+/* desglose por letra de la palabra seleccionada, dentro del nav y hacia abajo */
+nav.bar section.letras { border-top: 1px dashed var(--line); margin-top: 8px; padding-top: 6px; }
+nav.bar section.letras h2 { font-size: .92rem; margin: 2px 0 6px; }
+nav.bar section.letras .ayuda { color: var(--muted); font-size: .8rem; margin: 0; }
+nav.bar section.letras ol { list-style: none; margin: 0; padding: 0; }
+nav.bar section.letras li { display: flex; align-items: baseline; gap: 8px; padding: 4px 0;
+  border-top: 1px solid var(--line); }
+nav.bar section.letras li:first-child { border-top: 0; }
+nav.bar section.letras .heb { font-size: 1.5rem; line-height: 1.1; direction: rtl; }
+nav.bar section.letras li b { min-width: 4.4rem; }
+nav.bar section.letras li span:last-child { color: var(--muted); font-size: .82rem; }
 .es small.ver { color: var(--accent); font-size: .75em; white-space: nowrap; }
 .es { margin-top: 2px; }
 body.no-niqqud .he { /* el niqqud se quita al mostrar he_plain */ }
@@ -220,6 +231,8 @@ function renderNav() {
     }
     html += "</ul></details>";
   }
+  html += "<section class='letras' id='letras' aria-live='polite'><h2>Letras</h2>" +
+    AYUDA_LETRAS + "</section>";
   nav.innerHTML = html;
 }
 function chapters(b) {
@@ -233,6 +246,41 @@ function chapters(b) {
 
 /* ── lectura ────────────────────────────────────────────────────────── */
 const sinNiqqud = (s) => (s || "").replace(/[\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7]/g, "");
+
+/* ── desglose por letra (lectura pictográfica) ───────────────────────── */
+const AYUDA_LETRAS = "<p class='ayuda'>Toca un componente hebreo (o su palabra española) y aquí " +
+  "aparece, una por línea, cada letra con su lectura pictográfica.</p>";
+let TABLA = null;
+
+function cargarLetras() {
+  if (TABLA) return Promise.resolve(TABLA);
+  return fetch("v1/letras.json", { cache: "no-cache" })
+    .then((r) => r.json()).then((d) => { TABLA = d; return d; }).catch(() => null);
+}
+
+/* Las formas finales se leen como su letra base; el niqqud y los te'amim no son letras. */
+function letrasDe(palabra) {
+  if (!TABLA) return [];
+  return sinNiqqud(palabra || "").split("")
+    .map((l) => TABLA.finals[l] || l)
+    .filter((l) => TABLA.letters[l]);
+}
+
+function pintarLetras(palabra) {
+  const caja = document.getElementById("letras");
+  if (!caja) return;
+  const letras = letrasDe(palabra);
+  if (!letras.length) {
+    caja.innerHTML = "<h2>Letras</h2>" + AYUDA_LETRAS;
+    return;
+  }
+  caja.innerHTML = "<h2>Letras de <span class='heb'>" + esc((palabra || "").trim()) +
+    "</span></h2><ol>" + letras.map((l) => {
+      const d = TABLA.letters[l];
+      return "<li><span class='heb'>" + esc(l) + "</span><b>" + esc(d.nombre) + "</b><span>" +
+        esc(d.pictograma) + "</span></li>";
+    }).join("") + "</ol>";
+}
 
 /* Pieza tocable: lleva el índice de su palabra y su id (Strong de raíz o P/<letra>). */
 function spanW(txt, id, i, clase) {
@@ -477,6 +525,10 @@ function pintarPalabra(li, el) {
     .map((w) => w.textContent).join(" ");
   const me = palabrasDe(li, ".es").filter((w) => w.classList.contains("marca"))
     .map((w) => w.textContent).join(" ");
+  const hebreas = palabrasDe(li, ".he").filter((w) => w.classList.contains("marca"));
+  const elegida = el.closest(".he") ? el : hebreas[0];
+  pintarLetras(elegida ? elegida.textContent : "");
+
   const glosa = glosaId(id);
   $("#marca-info").innerHTML = "<b>" + esc(id) + "</b>" + (glosa === id ? "" : " · " + esc(glosa)) +
     " · " + esc(mh) + " = " + esc(me);
@@ -491,6 +543,7 @@ document.addEventListener("mouseout", (e) => {
   if (!e.target.closest || !e.target.closest(".w") || marca.fijo) return;
   limpiarMarca();
   $("#marca-info").innerHTML = "";
+  pintarLetras("");
 });
 document.addEventListener("click", (e) => {
   const w = e.target.closest && e.target.closest(".w");
@@ -499,6 +552,7 @@ document.addEventListener("click", (e) => {
   if (marca.fijo && marca.el === w) {              // segundo clic: se quita
     limpiarMarca();
     $("#marca-info").innerHTML = "";
+    pintarLetras("");
     marca.el = null; marca.fijo = false;
     return;
   }
@@ -546,6 +600,7 @@ function route() {
 
 async function boot() {
   try {
+    cargarLetras();
     state.idx = await getJSON("v1/index.json");
     state.idx.books.forEach((b) => { state.books[b.slug] = b; });
     await route();
