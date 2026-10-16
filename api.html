@@ -71,7 +71,9 @@ curl -s -o /dev/null -w "%{http_code}\n" https://avisonofgod.github.io/v1/he/gen
   "verses": [
     { "n": 1,
       "he": "בְּרֵאשִׁ֖ית בָּרָ֣א אֱלֹהִ֑ים אֵ֥ת הַשָּׁמַ֖יִם וְאֵ֥ת הָאָֽרֶץ׃",
-      "he_plain": "בראשית ברא אלהים את השמים ואת הארץ" },
+      "he_plain": "בראשית ברא אלהים את השמים ואת הארץ",
+      "hw": ["בְּרֵאשִׁ֖ית", "בָּרָ֣א", "אֱלֹהִ֑ים", "אֵ֥ת", "הַשָּׁמַ֖יִם", "וְאֵ֥ת", "הָאָֽרֶץ׃"],
+      "hs": ["H7225", "H1254", "H430", "H853", "H8064", "H853", "H776"] },
     { "n": 5, "he": "…", "he_plain": "…", "marker": "פ" }
   ],
   "counts": { "verses": 31 }
@@ -80,9 +82,24 @@ curl -s -o /dev/null -w "%{http_code}\n" https://avisonofgod.github.io/v1/he/gen
     <li><code>he</code>: texto del códice con niqqud y te'amim, en <strong>NFC</strong>.</li>
     <li><code>he_plain</code>: el mismo texto sin signos (búsqueda, comparación, transliteración).</li>
     <li><code>marker</code>: marca de párrafo del códice: <code>פ</code> (petuĥá) o <code>ס</code> (setumá).</li>
+    <li><code>hw</code>: <strong>las palabras del versículo</strong>; al unirlas con un espacio se obtiene
+        <code>he</code> exactamente (así cada palabra es tocable).</li>
+    <li><code>hs</code>: número (o números, unidos por <code>+</code> cuando el maqqef une dos palabras)
+        de <strong>Strong</strong> de cada palabra hebrea, en paralelo a <code>hw</code>.</li>
     <li>En español, <code>alignment</code> indica <code>he</code>, <code>es</code>, <code>diff</code> y si la numeración coincide;
         <code>es_ref</code> aparece cuando la cita de la RV1909 es distinta (Yoel, Malaquías).</li>
+    <li><code>st</code>: <strong>Strong por palabra española</strong>, en paralelo a <code>es</code> (dividido por
+        espacios). <code>null</code> = artículo, preposición o conjunción sin etiqueta propia.
+        Une ambos idiomas: el mismo Strong en <code>hs</code> y en <code>st</code> es la misma palabra
+        (p. ej. H7225 → <em>בְּרֵאשִׁית</em> y «En el principio»).</li>
   </ul>
+
+  <h2>Relación palabra hebrea ↔ traducción (Strong)</h2>
+  <p>La capa propia <strong>v1.0 עבדיהו</strong> (autor Obadias, <strong>CC0-1.0</strong>) etiqueta el texto
+  español con los números de Strong de la palabra hebrea correspondiente. Cobertura: 258.675 de 265.211
+  palabras hebreas (98 %) y 182.393 de 537.865 tokens españoles (34 %; el resto son artículos,
+  preposiciones y conjunciones). Declaración, estadísticas y licencia en
+  <a href="/v1/versions.json">/v1/versions.json</a> (<code>strong_layer</code>).</p>
 
   <h2>Numeración hebrea vs. española</h2>
   <p>El Tanaj y la RV1909 no parten igual todos los versículos. La API <strong>nunca mezcla</strong>: el hebreo conserva
@@ -108,6 +125,9 @@ curl -s -o /dev/null -w "%{http_code}\n" https://avisonofgod.github.io/v1/he/gen
         (atribución al Open Scriptures Hebrew Bible Project).</li>
     <li><strong>Español:</strong> Reina-Valera 1909, <strong>dominio público</strong>, vía
         <a href="https://api.getbible.net/" rel="noopener">getbible v2</a>.</li>
+    <li><strong>Puente Strong español:</strong> Reina-Valera 1865 con números de Strong a nivel de palabra —
+        <a href="https://github.com/ohneklavier-creator/reina-valera-1865-strongs-concordancia" rel="noopener">ohneklavier-creator/reina-valera-1865-strongs-concordancia</a>,
+        <strong>CC0-1.0</strong>; solo se usa para <em>generar</em> la capa propia (no se sirve tal cual).</li>
     <li>Sin versiones con licencia no comercial (p. ej. JPS) en este sitio.</li>
   </ul>
   <p class="muted">Al reutilizar el texto, conserva esta atribución. Los datos se generan con

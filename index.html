@@ -81,6 +81,15 @@ ol.verses li:target, ol.verses li.hit { background: var(--mark); }
 .he { direction: rtl; text-align: right; font-family: "Times New Roman", "Ezra SIL", "SBL Hebrew", serif;
       font-size: var(--hi); line-height: 1.85; color: var(--he); }
 .he .marker { color: var(--muted); font-size: .7em; }
+/* Palabra palpable: al pasar el cursor o hacer clic se pinta ella y su traducción. */
+.w { cursor: pointer; border-radius: 3px; padding: 0 1px; }
+.w:hover { background: var(--accent-soft); }
+.w.marca { background-image: linear-gradient(180deg, transparent 52%, var(--mark) 52%,
+           var(--mark) 94%, transparent 94%); }
+.w.marca:hover { background-image: linear-gradient(180deg, transparent 52%, var(--mark) 52%,
+           var(--mark) 94%, transparent 94%); }
+#marca-info { color: var(--muted); font-size: .85rem; }
+#marca-info b { color: var(--accent); }
 .es small.ver { color: var(--accent); font-size: .75em; white-space: nowrap; }
 .es { margin-top: 2px; }
 body.no-niqqud .he { /* el niqqud se quita al mostrar he_plain */ }
@@ -160,9 +169,12 @@ footer a { color: var(--accent); }
   Los versículos revisados (versión <em>1.0</em>, autor <em>Obadias</em>, CC0) van marcados
   uno a uno; autor, licencia y avance están en <a href="/v1/versions.json">/v1/versions.json</a>.
   Secciones: Torá (5 libros), Nevi'im (21), Ketuvim (13) — 929 capítulos, 23.213 versículos.</p>
+  <p id="ayuda-marca">Toca cualquier palabra —hebrea o española— para ver su correspondencia
+  (<em>בְּרֵאשִׁית</em> → «En el principio»); el pie indica el número de Strong.</p>
   <p>API JSON de solo lectura en <a href="/v1/index.json">/v1/index.json</a> ·
   documentación en <a href="api.html">api.html</a> ·
   numeración hebrea vs. española en <a href="/v1/align.json">/v1/align.json</a>.</p>
+  <p id="marca-info" aria-live="polite"></p>
   <p id="estado" aria-live="polite"></p>
 </footer>
 
@@ -219,9 +231,32 @@ function chapters(b) {
 }
 
 /* ── lectura ────────────────────────────────────────────────────────── */
+const sinNiqqud = (s) => (s || "").replace(/[\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7]/g, "");
+
+/* Palabra tocable: lleva su índice y su número de Strong (vacío si no tiene). */
+function spanW(txt, strong, i, clase) {
+  return "<span class='w" + (clase ? " " + clase : "") + "' data-i='" + i + "' data-s='" +
+    (strong || "") + "'>" + esc(txt) + "</span>";
+}
+
 function verseHe(v) {
-  const t = state.niqqud ? v.he : v.he_plain;
-  return esc(t) + (v.marker ? " <span class='marker'>[" + esc(v.marker) + "]</span>" : "");
+  let cuerpo;
+  if (v.hw && v.hw.length) {
+    cuerpo = v.hw.map((w, i) => spanW(state.niqqud ? w : sinNiqqud(w), v.hs && v.hs[i], i)).join(" ");
+  } else {
+    cuerpo = esc(state.niqqud ? v.he : v.he_plain);
+  }
+  return cuerpo + (v.marker ? " <span class='marker'>[" + esc(v.marker) + "]</span>" : "");
+}
+
+function verseEs(ev) {
+  let cuerpo = esc(ev.es);
+  if (ev.st && ev.st.length === (ev.es || "").split(" ").length) {
+    cuerpo = ev.es.split(" ").map((t, i) => spanW(t, ev.st[i], i)).join(" ");
+  }
+  return cuerpo +
+    (ev.es_ref ? " <small>(" + esc(ev.es_ref) + ")</small>" : "") +
+    (ev.es_version ? " <small class='ver'>" + esc(ev.es_version) + "</small>" : "");
 }
 
 function renderChapter(he, es) {
@@ -263,6 +298,9 @@ function renderChapter(he, es) {
     for (const v of es.verses) if (!he.verses.some((h) => h.n === v.n)) rows.push(row(null, v));
   }
   $("#verses").innerHTML = rows.join("");
+  limpiarMarca();
+  marca.fijo = false;
+  $("#marca-info").innerHTML = "";
   document.title = b.es + " " + state.chapter + " — Tanaj";
 }
 function row(hv, ev) {
@@ -271,9 +309,7 @@ function row(hv, ev) {
   return "<li id='" + id + "' data-n='" + n + "'>" +
     "<div class='num'>" + n + "</div><div>" +
     "<div class='he'>" + (hv ? verseHe(hv) : "<em>—</em>") + "</div>" +
-    "<div class='es'>" + (ev ? esc(ev.es) +
-      (ev.es_ref ? " <small>(" + esc(ev.es_ref) + ")</small>" : "") +
-      (ev.es_version ? " <small class='ver'>" + esc(ev.es_version) + "</small>" : "") : "") + "</div>" +
+    "<div class='es'>" + (ev ? verseEs(ev) : "") + "</div>" +
     "<div class='verse-tools'><button data-copy='" + n + "'>Copiar</button>" +
     "<button data-link='" + n + "'>Enlace</button></div></div></li>";
 }
@@ -403,11 +439,103 @@ $("#rnd").onclick = () => {
   const cap = 1 + Math.floor(Math.random() * b.chapters);
   load(b.slug, cap);
 };
+/* ── marcador: se pinta la palabra tocada y su traducción ───────────────────── */
+const marca = { li: null, el: null, fijo: false };
+
+function limpiarMarca() {
+  document.querySelectorAll(".w.marca").forEach((e) => e.classList.remove("marca"));
+}
+
+const palabrasDe = (li, sel) => Array.prototype.slice.call(li.querySelectorAll(sel + " .w"));
+
+/* Span español de una palabra: absorbe los huecos sin Strong que van DELANTE
+   («En el principio» para H7225, «los cielos» para H8064) y, solo si no queda
+   ninguna ancla después, también los de detrás. */
+function spanEs(ws, i) {
+  let a = i, b = i;
+  while (a - 1 >= 0 && !ws[a - 1].dataset.s) a--;
+  if (!ws.slice(i + 1).some((x) => x.dataset.s)) {
+    while (b + 1 < ws.length && !ws[b + 1].dataset.s) b++;
+  }
+  return [a, b];
+}
+
+function strongVecino(ws, i) {
+  for (let d = 1; d < ws.length; d++) {
+    for (const j of [i - d, i + d]) {
+      if (j >= 0 && j < ws.length && ws[j].dataset.s) return j;
+    }
+  }
+  return -1;
+}
+
+const strongsDe = (el) => (el.dataset.s || "").split("+").filter((s) => s);
+const comparte = (el, strongs) => strongsDe(el).some((s) => strongs.indexOf(s) >= 0);
+
+function pintarPalabra(li, el) {
+  limpiarMarca();
+  const bloque = el.closest(".he") ? "he" : "es";
+  const ws = palabrasDe(li, "." + bloque);
+  const he = palabrasDe(li, ".he"), es = palabrasDe(li, ".es");
+  let i = ws.indexOf(el), strongs = strongsDe(el);
+
+  if (!strongs.length) {                          // sin Strong: se apoya en la vecina
+    const j = strongVecino(ws, i);
+    if (j < 0) { el.classList.add("marca"); return; }
+    strongs = strongsDe(ws[j]);
+    if (bloque === "es") i = j; else el = ws[j];
+  }
+  el.classList.add("marca");
+
+  if (bloque === "es") {
+    const [a, b] = spanEs(es, i);
+    for (let k = a; k <= b; k++) es[k].classList.add("marca");
+  } else {
+    for (const e of es) {
+      const k = es.indexOf(e);
+      if (!comparte(e, strongs)) continue;
+      const [a, b] = spanEs(es, k);
+      for (let j = a; j <= b; j++) es[j].classList.add("marca");
+    }
+  }
+  for (const h of he) if (comparte(h, strongs)) h.classList.add("marca");
+
+  const mh = he.filter((h) => h.classList.contains("marca")).map((h) => h.textContent)[0] || "";
+  const me = es.filter((h) => h.classList.contains("marca")).map((h) => h.textContent).join(" ");
+  $("#marca-info").innerHTML = "<b>" + esc(strongs.join("+")) + "</b> · " + esc(mh) + " = " + esc(me);
+}
+
+document.addEventListener("mouseover", (e) => {
+  const w = e.target.closest && e.target.closest(".w");
+  if (!w || marca.fijo) return;
+  pintarPalabra(w.closest("li"), w);
+});
+document.addEventListener("mouseout", (e) => {
+  if (!e.target.closest || !e.target.closest(".w") || marca.fijo) return;
+  limpiarMarca();
+  $("#marca-info").innerHTML = "";
+});
+document.addEventListener("click", (e) => {
+  const w = e.target.closest && e.target.closest(".w");
+  if (!w || e.target.closest(".verse-tools")) return;
+  const li = w.closest("li");
+  if (marca.fijo && marca.el === w) {              // segundo clic: se quita
+    limpiarMarca();
+    $("#marca-info").innerHTML = "";
+    marca.el = null; marca.fijo = false;
+    return;
+  }
+  pintarPalabra(li, w);
+  marca.li = li; marca.el = w; marca.fijo = true;
+});
+
 document.addEventListener("click", (e) => {
   const c = e.target.closest("[data-copy]"), l = e.target.closest("[data-link]");
   if (!c && !l) return;
   const n = +((c || l).dataset.copy || (c || l).dataset.link);
-  const li = e.target.closest("li"), he = li.querySelector(".he").innerText, es = li.querySelector(".es").innerText;
+  const li = e.target.closest("li");
+  const texto = (sel) => { const n = li.querySelector(sel); return n.innerText || n.textContent || ""; };
+  const he = texto(".he"), es = texto(".es");
   const ref = book().he + " " + state.chapter + ":" + n + " [" + book().es + " " + state.chapter + ":" + n + "]";
   if (l) {
     const url = location.origin + location.pathname + "#/" + state.slug + "/" + state.chapter + "/" + n;

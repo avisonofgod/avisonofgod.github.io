@@ -105,7 +105,8 @@ class TestBuild(unittest.TestCase):
     def test_un_libro(self):
         with tempfile.TemporaryDirectory() as tmp:
             args = argparse.Namespace(wlc=WLC_DIR, valera=VALERA, out=tmp, lang="he",
-                                      book="bereshit", books=False, no_check=False)
+                                      book="bereshit", books=False, no_check=False,
+                                      strong=build_data.STRONG_LAYER, no_strong=True)
             build_data.build(args)
             caps = sorted(os.listdir(os.path.join(tmp, "he", "bereshit")))
             self.assertEqual(len(caps), 50)
@@ -117,7 +118,8 @@ class TestBuild(unittest.TestCase):
     def test_alineacion_es(self):
         with tempfile.TemporaryDirectory() as tmp:
             args = argparse.Namespace(wlc=WLC_DIR, valera=VALERA, out=tmp, lang="es",
-                                      book="yoel", books=False, no_check=False)
+                                      book="yoel", books=False, no_check=False,
+                                      strong=build_data.STRONG_LAYER, no_strong=True)
             build_data.build(args)
             d = json.load(open(os.path.join(tmp, "es", "yoel", "3.json")))
             self.assertEqual(d["alignment"]["he"], 5)
@@ -218,13 +220,61 @@ class TestVersionesES(unittest.TestCase):
     def test_build_es_marca_version(self):
         with tempfile.TemporaryDirectory() as tmp:
             args = argparse.Namespace(wlc=WLC_DIR, valera=VALERA, out=tmp, lang="es",
-                                      book="bereshit", books=False, no_check=False)
+                                      book="bereshit", books=False, no_check=False,
+                                      strong=build_data.STRONG_LAYER, no_strong=False)
             build_data.build(args)
             d = json.load(open(os.path.join(tmp, "es", "bereshit", "1.json")))
             self.assertEqual(d["verses"][0]["es_version"], "v1.0")
             self.assertEqual(d["verses"][1]["es_version"], "v1.0")
             self.assertNotIn("es_version", d["verses"][2])
             self.assertEqual(d["verses"][2]["es"], "Y dijo Dios: Sea la luz: y fué la luz.")
+
+
+class TestStrongDelEspanol(unittest.TestCase):
+    """Relación palabra hebrea <-> traducción (capa propia v1.0 עבדיהו)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.capa = json.load(open(build_data.STRONG_LAYER, encoding="utf-8"))
+
+    def test_declaracion_de_la_capa(self):
+        c = self.capa
+        self.assertEqual(c["version"], "1.0")
+        self.assertIn("עבדיהו", c["author"])
+        self.assertEqual(c["spdx"], "CC0-1.0")
+        self.assertIn("morphhb", c["source"])
+        self.assertGreater(len(c["books"]), 30)
+
+    def test_genesis_1_1_etiquetado(self):
+        st = self.capa["books"]["bereshit"]["1"]["1"]
+        es = "En el principio creó Elohim los cielos y la tierra.".split()
+        self.assertEqual(len(st), len(es))
+        parejas = {t: s for t, s in zip(es, st) if s}
+        self.assertEqual(parejas, {"principio": "H7225", "creó": "H1254",
+                                   "Elohim": "H430", "cielos": "H8064", "tierra.": "H776"})
+
+    def test_hebreo_paralelo_al_texto(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            args = argparse.Namespace(wlc=WLC_DIR, valera=VALERA, out=tmp, lang="all",
+                                      book="bereshit", books=False, no_check=False,
+                                      strong=build_data.STRONG_LAYER, no_strong=False)
+            build_data.build(args)
+            d = json.load(open(os.path.join(tmp, "he", "bereshit", "1.json")))
+            v = d["verses"][0]
+            self.assertEqual(" ".join(v["hw"]), v["he"], "las palabras reproducen el texto")
+            self.assertEqual(len(v["hw"]), len(v["hs"]))
+            self.assertEqual(v["hs"][0], "H7225")
+            e = json.load(open(os.path.join(tmp, "es", "bereshit", "1.json")))
+            self.assertEqual(e["verses"][0]["st"], self.capa["books"]["bereshit"]["1"]["1"])
+            # el maqqef une dos palabras con sus dos Strong
+            v2 = d["verses"][1]
+            self.assertTrue(" ".join(v2["hw"]) == v2["he"])
+            self.assertTrue(any(s and "+" in s for s in v2["hs"]), v2["hs"][:8])
+
+    def test_cobertura_suficiente(self):
+        s = self.capa["stats"]
+        self.assertGreater(s["tokens_etiquetados"] / s["tokens"], 0.25)
+        self.assertEqual(s.get("versiculos_sin_etiqueta", 0), 0)
 
 
 if __name__ == "__main__":

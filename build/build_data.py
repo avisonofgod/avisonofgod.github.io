@@ -9,7 +9,9 @@ Uso:
 Salida:
     v1/index.json                       metadatos (secciones, libros, alias, conteos)
     v1/manifest.json                    ruta -> {bytes, sha256}
-    v1/he/<slug>/<cap>.json             hebreo (WLC: niqqud + te'amim)
+    v1/he/<slug>/<cap>.json             hebreo (WLC: niqqud + te'amim) + palabras y
+                                        Strong por palabra (`hw`, `hs`)
+    v1/es/...                           español + Strong por token (`st`)
     v1/es/<slug>/<cap>.json             español (Reina-Valera 1909)
     v1/search/<seccion>.json            índice de búsqueda (texto normalizado)
 
@@ -31,6 +33,10 @@ import es_verses                                # noqa: E402
 import slugs                                    # noqa: E402
 import wlc                                      # noqa: E402
 
+# Capa propia de números de Strong sobre el español (build/strong_es.py).
+STRONG_LAYER = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "es_strong", "obadias-v1.0-strong.json")
+
 ACCENT_MAP = str.maketrans("áéíóúüñÁÉÍÓÚÜÑ", "aeiouunAEIOUUN")
 
 
@@ -49,6 +55,50 @@ def write_json(path, payload, manifest):
         fh.write(blob)
     manifest[path] = {"bytes": len(blob), "sha256": hashlib.sha256(blob).hexdigest()}
     return len(blob)
+
+
+def _strong_payload(strong):
+    """Bloque de `versions.json` que declara la capa de Strong (si existe)."""
+    if not strong:
+        return {}
+    return {
+        "strong_layer": {
+            "version": strong.get("version"),
+            "author": strong.get("author"),
+            "license": strong.get("license"),
+            "spdx": strong.get("spdx"),
+            "source": strong.get("source"),
+            "file": os.path.relpath(STRONG_LAYER, os.path.dirname(os.path.dirname(
+                os.path.abspath(__file__)))),
+            "note": strong.get("note"),
+            "stats": strong.get("stats"),
+            "fields": {"hebreo": ["hw (palabras)", "hs (Strong por palabra)"],
+                       "espanol": ["st (Strong por token, paralelo a v1/es)"]},
+        }
+    }
+
+
+def _st(st_cap, n, texto):
+    """{"st": [...]} con un Strong por token español, o {} si no cuadra/no hay datos."""
+    fila = st_cap.get(str(n))
+    if not fila:
+        return {}
+    if len(fila) != len((texto or "").split()):
+        return {}
+    return {"st": fila}
+
+
+def load_strong_layer(path=STRONG_LAYER):
+    """{slug: {capítulo: {versículo: [Strong|None, ...]}}} o {} si no existe la capa.
+
+    Los Strong son paralelos a los tokens del español servido (separados por espacios).
+    """
+    if not path or not os.path.isfile(path):
+        print("AVISO: sin capa de Strong (%s): el lector no podrá resaltar la traducción"
+              % path)
+        return {}
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh)
 
 
 def load_valera(path):
@@ -78,6 +128,8 @@ def build(args):
     manifest = {}
     es_src = load_valera(args.valera) if args.lang in ("all", "es") else {}
     capas_es = es_verses.load()
+    strong = {} if args.no_strong else load_strong_layer(args.strong)
+    strong_books = strong.get("books", {})
     aplicados = {}          # etiqueta corta -> versículos escritos en v1/es
     targets = [b for b in slugs.BOOKS
                if not args.book or b["slug"] == args.book or b["osis"] == args.book]
@@ -94,7 +146,7 @@ def build(args):
         xml = os.path.join(args.wlc, book["osis"] + ".xml")
         if not os.path.isfile(xml):
             sys.exit("falta la fuente hebrea: %s" % xml)
-        he_chaps = wlc.parse_book(xml)
+        he_chaps = wlc.parse_book(xml, with_words=True)
         es_chaps = es_src.get(book["rv1909"], {})
         es_verses.apply(es_chaps, book["slug"], capas_es)
 
@@ -109,6 +161,7 @@ def build(args):
 
         for num in sorted(he_chaps):
             verses = he_chaps[num]
+            st_cap = strong_books.get(book["slug"], {}).get(str(num), {})
             es = {v["n"]: v["es"] for v in es_chaps.get(num, [])}
             es_ov = {v["n"]: v["es_version"] for v in es_chaps.get(num, []) if v.get("es_version")}
             for ver in es_ov.values():
@@ -127,6 +180,8 @@ def build(args):
                     "lang": "he",
                     "source": "Westminster Leningrad Codex (morphhb, CC BY 4.0)",
                     "verses": [{"n": v["n"], "he": v["he"], "he_plain": v["he_plain"],
+                                "hw": [w for w, _s in v["words"]],
+                                "hs": [s for _w, s in v["words"]],
                                 **({"marker": v["marker"]} if v.get("marker") else {})}
                                for v in verses],
                     "counts": {"verses": len(verses)},
@@ -139,9 +194,11 @@ def build(args):
                 if len(cur) != len(verses):
                     sys.exit("regla curada de %s/%d no cuadra: %d he vs %d es"
                              % (book["slug"], num, len(verses), len(cur)))
-                es_rows = [{"n": n, "es": txt, "es_ref": ref} for n, txt, ref in cur]
+                es_rows = [{"n": n, "es": txt, "es_ref": ref, **_st(st_cap, n, txt)}
+                           for n, txt, ref in cur]
             else:
-                es_rows = [{"n": n, "es": es[n], **({"es_version": es_ov[n]} if n in es_ov else {})}
+                es_rows = [{"n": n, "es": es[n], **_st(st_cap, n, es[n]),
+                            **({"es_version": es_ov[n]} if n in es_ov else {})}
                            for n in sorted(es)]
 
             if args.lang in ("all", "es") and (es_rows or []):
@@ -222,6 +279,8 @@ def build(args):
             "he": "Westminster Leningrad Codex con morfología (openscriptures/morphhb, CC BY 4.0)",
             "es": "Reina-Valera 1909 (dominio público, getbible v2)",
             "es_versions": [c["version"] for c in capas_es],
+            "es_strong": ("números de Strong por token español — capa propia v1.0 עבדיהו "
+                          "(WLC + RV1865 etiquetada, CC0)") if strong else None,
         }
         _idx["alignment"] = {"file": "align.json",
                              "chapters_with_divergence": len(alignment_rows),
@@ -236,6 +295,7 @@ def build(args):
             "base": {"version": "Reina-Valera 1909", "license": "dominio público",
                      "source": "getbible v2 (api.getbible.net/v2/valera.json)"},
             "versions": es_verses.payload(por_version, capas_es),
+            **_strong_payload(strong),
         }, manifest)
         write_json(os.path.join(args.out, "manifest.json"),
                    {"generated_by": "build/build_data.py", "files": manifest,
@@ -260,6 +320,8 @@ def main():
     ap.add_argument("--book", default=None, help="slug u OSIS de un solo libro")
     ap.add_argument("--books", action="store_true", help="generar también v1/books/<slug>.json")
     ap.add_argument("--no-check", action="store_true", help="no exigir 929 capítulos / 23213 versículos")
+    ap.add_argument("--strong", default=STRONG_LAYER, help="capa de números de Strong del español")
+    ap.add_argument("--no-strong", action="store_true", help="no incluir Strong en la API")
     build(ap.parse_args())
 
 

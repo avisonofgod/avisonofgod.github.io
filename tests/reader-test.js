@@ -37,7 +37,11 @@ async function boot() {
       };
       win.Element.prototype.scrollIntoView = () => {};
       win.scrollTo = () => {};
-      win.navigator.clipboard = { writeText: async () => {} };
+      win.__clip = null;
+      Object.defineProperty(win.navigator, "clipboard", {
+        configurable: true,
+        value: { writeText: async (t) => { win.__clip = t; } },
+      });
     },
   });
   const { window } = dom;
@@ -141,6 +145,46 @@ async function boot() {
   await wait(1200);
   chk($$("#results .hit").some((h) => /Joel 3:1/.test(h.textContent)),
       "búsqueda española sin acentos → Joel 3:1 (derramaré mi Espíritu)");
+
+  // 12) marcador: la palabra tocada y su traducción (Strong)
+  box.value = "";
+  box.dispatchEvent(new w.Event("input", { bubbles: true }));
+  w.location.hash = "#/bereshit/1";
+  await wait(500);
+  const li1 = $$("#verses li")[0];
+  const hePal = li1.querySelectorAll(".he .w");
+  const esPal = li1.querySelectorAll(".es .w");
+  chk(hePal.length === 7, "Gen 1:1: 7 palabras hebreas palpables", hePal.length);
+  chk(esPal.length === 10, "y 10 tokens españoles", esPal.length);
+  chk(hePal[0].dataset.s === "H7225", "la primera palabra lleva su Strong", hePal[0].dataset.s);
+
+  // cursor sobre el hebreo -> se pinta su traducción
+  hePal[4].dispatchEvent(new w.Event("mouseover", { bubbles: true }));
+  let marcadosEs = Array.from(li1.querySelectorAll(".es .w.marca")).map((e) => e.textContent).join(" ");
+  chk(marcadosEs === "los cielos", "cursor en הַשָּׁמַיִם pinta «los cielos»", marcadosEs);
+
+  // cursor sobre el español -> se pinta el hebreo
+  esPal[9].dispatchEvent(new w.Event("mouseover", { bubbles: true }));
+  const soloLetras = (s) => (s || "").replace(/[\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7\u05c3]/g, "");
+  const marcadosHe = Array.from(li1.querySelectorAll(".he .w.marca")).map((e) => e.textContent).join(" ");
+  chk(soloLetras(marcadosHe) === "הארץ", "cursor en «tierra.» pinta הָאָרֶץ", soloLetras(marcadosHe));
+  esPal[9].dispatchEvent(new w.Event("mouseout", { bubbles: true }));
+  chk(li1.querySelectorAll(".w.marca").length === 0, "al salir el cursor se limpia");
+
+  // clic -> queda fijo; la frase entera (huecos sin Strong incluidos)
+  hePal[0].dispatchEvent(new w.Event("click", { bubbles: true }));
+  marcadosEs = Array.from(li1.querySelectorAll(".es .w.marca")).map((e) => e.textContent).join(" ");
+  chk(marcadosEs === "En el principio", "clic en בְּרֵאשִׁית pinta «En el principio»", marcadosEs);
+  chk(li1.querySelector(".he .w.marca") === hePal[0], "la palabra elegida queda marcada");
+  chk(/H7225/.test($("#marca-info").textContent), "el pie muestra el Strong",
+      $("#marca-info").textContent.trim().slice(0, 40));
+  hePal[0].dispatchEvent(new w.Event("click", { bubbles: true }));
+  chk($$("#verses li")[0].querySelectorAll(".w.marca").length === 0, "segundo clic quita el marcador");
+
+  // copiar sigue trayendo el texto completo (los spans no lo rompen)
+  li1.querySelector("[data-copy]").dispatchEvent(new w.Event("click", { bubbles: true }));
+  chk(/En el principio creó Elohim/.test(w.__clip || ""), "Copiar incluye el español",
+      String(w.__clip).split("\n")[2]);
 
   console.log("\n== RESUMEN: " + ok + " OK / " + fail + " FALLA ==");
   process.exit(fail ? 1 : 0);
