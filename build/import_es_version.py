@@ -19,9 +19,9 @@ nombre de la RV1909). Se valida contra v1/he/ y se reporta cobertura y huecos.
 
 Uso:
   python3 build/import_es_version.py --in revision.pdf --version "1.0" --short v1.0 \
-      --author Obadias --source "Revisión de Obadias sobre la RV1909" \
+      --author עבדיהו --source "Revisión de עבדיהו sobre la RV1909" \
       --license "CC0 1.0 Universal" --spdx CC0-1.0 \
-      --out build/es_versions/obadias-v1.0.json [--merge] [--dry-run]
+      --out "build/es_versions/עבדיהו-v1.0.json" [--merge] [--dry-run]
 """
 
 import argparse

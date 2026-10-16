@@ -146,40 +146,63 @@ async function boot() {
   chk($$("#results .hit").some((h) => /Joel 3:1/.test(h.textContent)),
       "búsqueda española sin acentos → Joel 3:1 (derramaré mi Espíritu)");
 
-  // 12) marcador: la palabra tocada y su traducción (Strong)
+  // 12) marcador de la versión propia עבדיהו: componentes hebreos <-> palabras españolas
   box.value = "";
   box.dispatchEvent(new w.Event("input", { bubbles: true }));
   w.location.hash = "#/bereshit/1";
   await wait(500);
   const li1 = $$("#verses li")[0];
-  const hePal = li1.querySelectorAll(".he .w");
-  const esPal = li1.querySelectorAll(".es .w");
-  chk(hePal.length === 7, "Gen 1:1: 7 palabras hebreas palpables", hePal.length);
+  const heComp = Array.from(li1.querySelectorAll(".he .w"));
+  const esPal = Array.from(li1.querySelectorAll(".es .w"));
+  chk(heComp.length === 11, "Gen 1:1: 7 palabras partidas en 11 componentes", heComp.length);
   chk(esPal.length === 10, "y 10 tokens españoles", esPal.length);
-  chk(hePal[0].dataset.s === "H7225", "la primera palabra lleva su Strong", hePal[0].dataset.s);
+  const bet = heComp.find((c) => c.textContent === "בְּ");
+  const resh = heComp.find((c) => c.textContent === "רֵאשִׁ֖ית");
+  chk(!!bet && bet.dataset.s === "P/b#0", "el prefijo בְּ trae su id", bet && bet.dataset.s);
+  chk(!!resh && resh.dataset.s === "H7225", "la raíz רֵאשִׁית trae su Strong",
+      resh && resh.dataset.s);
+  const marcados = (sel) => Array.from(li1.querySelectorAll(sel)).map((e) => e.textContent).join(" ");
 
-  // cursor sobre el hebreo -> se pinta su traducción
-  hePal[4].dispatchEvent(new w.Event("mouseover", { bubbles: true }));
-  let marcadosEs = Array.from(li1.querySelectorAll(".es .w.marca")).map((e) => e.textContent).join(" ");
-  chk(marcadosEs === "los cielos", "cursor en הַשָּׁמַיִם pinta «los cielos»", marcadosEs);
-
-  // cursor sobre el español -> se pinta el hebreo
-  esPal[9].dispatchEvent(new w.Event("mouseover", { bubbles: true }));
-  const soloLetras = (s) => (s || "").replace(/[\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7\u05c3]/g, "");
-  const marcadosHe = Array.from(li1.querySelectorAll(".he .w.marca")).map((e) => e.textContent).join(" ");
-  chk(soloLetras(marcadosHe) === "הארץ", "cursor en «tierra.» pinta הָאָרֶץ", soloLetras(marcadosHe));
-  esPal[9].dispatchEvent(new w.Event("mouseout", { bubbles: true }));
+  // cursor (sin nada fijo) -> se marca el par completo
+  resh.dispatchEvent(new w.Event("mouseover", { bubbles: true }));
+  chk(marcados(".es .w.marca") === "principio", "cursor en רֵאשִׁית marca «principio»",
+      marcados(".es .w.marca"));
+  resh.dispatchEvent(new w.Event("mouseout", { bubbles: true }));
   chk(li1.querySelectorAll(".w.marca").length === 0, "al salir el cursor se limpia");
 
-  // clic -> queda fijo; la frase entera (huecos sin Strong incluidos)
-  hePal[0].dispatchEvent(new w.Event("click", { bubbles: true }));
-  marcadosEs = Array.from(li1.querySelectorAll(".es .w.marca")).map((e) => e.textContent).join(" ");
-  chk(marcadosEs === "En el principio", "clic en בְּרֵאשִׁית pinta «En el principio»", marcadosEs);
-  chk(li1.querySelector(".he .w.marca") === hePal[0], "la palabra elegida queda marcada");
+  // clic en el prefijo -> solo «En»; clic en la raíz -> solo «principio»
+  bet.dispatchEvent(new w.Event("click", { bubbles: true }));
+  chk(marcados(".es .w.marca") === "En", "clic en בְּ marca solo «En»", marcados(".es .w.marca"));
+  resh.dispatchEvent(new w.Event("click", { bubbles: true }));
+  chk(marcados(".es .w.marca") === "principio", "clic en רֵאשִׁית marca «principio»",
+      marcados(".es .w.marca"));
+  chk(marcados(".he .w.marca") === "רֵאשִׁ֖ית", "y queda marcada la raíz elegida",
+      marcados(".he .w.marca"));
   chk(/H7225/.test($("#marca-info").textContent), "el pie muestra el Strong",
       $("#marca-info").textContent.trim().slice(0, 40));
-  hePal[0].dispatchEvent(new w.Event("click", { bubbles: true }));
-  chk($$("#verses li")[0].querySelectorAll(".w.marca").length === 0, "segundo clic quita el marcador");
+
+  // español -> hebreo, y cada artículo con SU id (no todos los de la clase)
+  const los = esPal.find((e) => e.textContent === "los");
+  los.dispatchEvent(new w.Event("click", { bubbles: true }));
+  chk(marcados(".he .w.marca") === "הַ", "clic en «los» marca el artículo הַ",
+      marcados(".he .w.marca"));
+  chk(marcados(".es .w.marca") === "los", "solo ese artículo, no «la»", marcados(".es .w.marca"));
+  const la = esPal.find((e) => e.textContent === "la");
+  la.dispatchEvent(new w.Event("click", { bubbles: true }));
+  chk(marcados(".es .w.marca") === "la" && marcados(".he .w.marca") === "הָ",
+      "clic en «la» marca el otro artículo (הָ)", marcados(".es .w.marca") + " / " + marcados(".he .w.marca"));
+
+  // partícula sin pareja: no marca nada
+  const elArt = esPal.find((e) => e.textContent === "el");
+  elArt.dispatchEvent(new w.Event("click", { bubbles: true }));
+  chk(li1.querySelectorAll(".w.marca").length === 0,
+      "«el» no se une a ningún componente: no marca", String(elArt.dataset.s));
+
+  // versículo ajeno a la versión propia: sin componentes ni marcador
+  const li3 = $$("#verses li")[2];
+  chk(li3.querySelectorAll(".he .w").length === 0 && li3.querySelectorAll(".es .w").length === 0,
+      "versículo sin versión propia: sin componentes",
+      li3.querySelectorAll(".w").length);
 
   // copiar sigue trayendo el texto completo (los spans no lo rompen)
   li1.querySelector("[data-copy]").dispatchEvent(new w.Event("click", { bubbles: true }));

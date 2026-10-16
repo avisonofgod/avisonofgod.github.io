@@ -70,22 +70,22 @@ python3 -m http.server 8080        # y abrir http://localhost:8080/
 | `/v1/versions.json` | capas de versión española: cita, licencia, versículos declarados/aplicados |
 | `/v1/manifest.json` | bytes y `sha256` por archivo |
 
-## Versión 1.0 (autor Obadias) sobre la RV1909
+## Versión 1.0 (autor עבדיהו) sobre la RV1909
 
 `data/valera.json` NO se versiona (se baja de getbible), así que todo texto español propio
 vive en `build/es_versions/*.json` y se aplica versículo a versículo; el versículo tocado
 conserva su `es` y gana `es_version` (etiqueta corta) — nada se falsea y se ve el avance.
 
-La capa activa es `build/es_versions/obadias-v1.0.json`: versión `1.0`, autor `Obadias`,
+La capa activa es `build/es_versions/עבדיהו-v1.0.json`: versión `1.0`, autor `עבדיהו`,
 licencia **CC0 1.0 Universal** (`spdx: CC0-1.0`, dedicación al dominio público — la más libre,
 sin condiciones). Se reescribe poco a poco: hoy Bereshit 1:1-1:2, el resto sigue en RV1909.
 `v1/versions.json` publica autor, licencia, versículos declarados y aplicados.
 
 ```bash
 # de un archivo propio (PDF con capa de texto, EPUB, DOCX, CSV/TSV/JSON) a una capa
-python3 build/import_es_version.py --in revision.pdf --out build/es_versions/obadias-v1.0.json \
-    --version "1.0" --short v1.0 --author Obadias --merge \
-    --source "Revisión de Obadias sobre la RV1909" \
+python3 build/import_es_version.py --in revision.pdf --out "build/es_versions/עבדיהו-v1.0.json" \
+    --version "1.0" --short v1.0 --author עבדיהו --merge \
+    --source "Revisión de עבדיהו sobre la RV1909" \
     --license "CC0 1.0 Universal" --spdx CC0-1.0
 python3 build/build_data.py --out v1 && python3 build/verify_data.py v1
 ```

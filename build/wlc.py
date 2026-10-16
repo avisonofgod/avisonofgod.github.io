@@ -52,23 +52,27 @@ def strong_de(attrs):
     return "H" + nums[-1] if nums else None
 
 
-def _tokens(body):
-    """[(palabra, Strong|None)] y marcas de párrafo, respetando maqqef/paseq."""
-    words, cur, strongs, marks = [], [], [], []
+def _escanear(body):
+    """[(palabra, Strong|None, lemma|None)] y marcas de párrafo, sin unir el maqqef."""
+    words, cur, strongs, lemmas, marks = [], [], [], [], []
 
     def flush():
         if cur:
             w = "".join(cur).strip()
             if w:
-                words.append((w, strongs[0] if strongs else None))
+                words.append((w, strongs[0] if strongs else None,
+                              lemmas[0] if lemmas else None))
             cur.clear()
             strongs.clear()
+            lemmas.clear()
 
     for m in TOKEN_RE.finditer(body):
         if m.group(1) is not None:                      # <w lemma="…">palabra</w>
             flush()
             cur.append(_text(m.group(2)).replace("/", ""))
             strongs.append(strong_de(m.group(1)))
+            lm = LEMMA_RE.search(m.group(1))
+            lemmas.append(lm.group(1) if lm else None)
         else:                                           # <seg type="...">…</seg>
             typ, txt = m.group(3), _text(m.group(4)).strip()
             if typ == "x-maqqef":
@@ -77,7 +81,7 @@ def _tokens(body):
                 cur.append(SOF_PASUQ)
             elif typ == "x-paseq":
                 flush()
-                words.append((PASEQ, None))
+                words.append((PASEQ, None, None))
             elif typ in PARA_MARKS:
                 marks.append(txt)
             elif txt:
@@ -86,24 +90,47 @@ def _tokens(body):
     return words, marks
 
 
+def _tokens(body):
+    """[(palabra, Strong|None)] y marcas de párrafo, respetando maqqef/paseq."""
+    palabras, marks = _escanear(body)
+    return [(w, s) for w, s, _lemma in palabras], marks
+
+
+def tokens_con_lemma(body):
+    """([(palabra, Strong|None, lemma|None)], marcas) SIN unir el maqqef."""
+    return _escanear(body)
+
+
+def grupos_maqqef(palabras):
+    """Índices de las palabras que el maqqef (־) liga: [[0], [1, 2], [3], …].
+
+    Es la única definición de la unión: la usan `extract_verse` (texto + Strong) y
+    `strong_es.py` (componentes), de modo que el texto servido y las palabras coinciden.
+    """
+    grupos = []
+    for i, w in enumerate(palabras):
+        primera = w[0] if isinstance(w, (tuple, list)) else w
+        if grupos and (palabras[grupos[-1][-1]][0].endswith(MAQQEF) or primera.startswith(MAQQEF)):
+            grupos[-1].append(i)
+        else:
+            grupos.append([i])
+    return grupos
+
+
 def extract_verse(body, with_words=False):
     """Devuelve (texto_hebreo, marca_de_parrafo[, palabras]).
 
     `palabras` = [(palabra, Strong|None)] en el orden del texto; al unirlas con un
     espacio se obtiene EXACTAMENTE el texto devuelto (lo comprueba verify_data.py).
     """
-    words, marks = _tokens(NOTE_RE.sub(" ", body))
+    crudas, marks = _escanear(NOTE_RE.sub(" ", body))
     # el maqqef (־) une dos palabras en UNA sola: se fusionan y sus Strong se suman
     # ("H5921+H6440"), así « ".join(words) » reproduce exactamente el texto servido.
-    unidas = []
-    for w, s in words:
-        if unidas and (unidas[-1][0].endswith(MAQQEF) or w.startswith(MAQQEF)):
-            pw, ps = unidas[-1]
-            fuertes = [f for f in dict.fromkeys((ps or "").split("+") + (s or "").split("+")) if f]
-            unidas[-1] = (pw + w, "+".join(fuertes) or None)
-        else:
-            unidas.append((w, s))
-    words = unidas
+    words = []
+    for grupo in grupos_maqqef(crudas):
+        texto = "".join(crudas[i][0] for i in grupo)
+        fuertes = [f for i in grupo for f in (crudas[i][1] or "").split("+") if f]
+        words.append((texto, "+".join(dict.fromkeys(fuertes)) or None))
     # NFC por palabra: al unirlas con espacios se obtiene el mismo texto servido
     # (y el lector puede partir `he` por espacios y obtener exactamente `words`)
     words = [(unicodedata.normalize("NFC", w), s) for w, s in words]

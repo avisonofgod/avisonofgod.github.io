@@ -137,7 +137,7 @@ class TestVersionesES(unittest.TestCase):
         capa = [c for c in capas if c["version"] == "1.0"][0]
         self.assertEqual(capa["verses"][("bereshit", 1, 1)],
                          "En el principio creó Elohim los cielos y la tierra.")
-        self.assertEqual(capa["author"], "Obadias")
+        self.assertEqual(capa["author"], "עבדיהו")
         self.assertTrue(capa["spdx"], "la capa declara licencia SPDX")
         self.assertIn("CC0", capa["license"])
         self.assertTrue(capa["file"].endswith(".json"))
@@ -165,7 +165,7 @@ class TestVersionesES(unittest.TestCase):
         self.assertEqual(k["verses_applied"], 2)
         self.assertTrue(k["file"].startswith("build/es_versions/"))
         self.assertEqual(k["short"], "v1.0")
-        self.assertEqual(k["author"], "Obadias")
+        self.assertEqual(k["author"], "עבדיהו")
         self.assertEqual(k["spdx"], "CC0-1.0")
 
     def test_carga_ignora_json_ajenos(self):
@@ -231,29 +231,53 @@ class TestVersionesES(unittest.TestCase):
 
 
 class TestStrongDelEspanol(unittest.TestCase):
-    """Relación palabra hebrea <-> traducción (capa propia v1.0 עבדיהו)."""
+    """Relación palabra hebrea <-> traducción: SOLO la versión propia v1.0 עבדיהו."""
 
     @classmethod
     def setUpClass(cls):
         cls.capa = json.load(open(build_data.STRONG_LAYER, encoding="utf-8"))
+        cls.capas = es_verses.load()
 
     def test_declaracion_de_la_capa(self):
         c = self.capa
         self.assertEqual(c["version"], "1.0")
-        self.assertIn("עבדיהו", c["author"])
+        self.assertEqual(c["author"], "עבדיהו", "sin alias: el autor es עבדיהו")
         self.assertEqual(c["spdx"], "CC0-1.0")
         self.assertIn("morphhb", c["source"])
-        self.assertGreater(len(c["books"]), 30)
+        self.assertIn("es_versions", c["scope"])
 
-    def test_genesis_1_1_etiquetado(self):
-        st = self.capa["books"]["bereshit"]["1"]["1"]
+    def test_alcance_solo_la_version_propia(self):
+        propias = set()
+        for capa in self.capas:
+            propias.update((s, c, n) for s, c, n in capa["verses"])
+        huerfanos = []
+        for slug, caps in self.capa["books"].items():
+            for cap, versos in caps.items():
+                for n in versos:
+                    if (slug, int(cap), int(n)) not in propias:
+                        huerfanos.append("%s/%s:%s" % (slug, cap, n))
+        self.assertEqual(huerfanos, [], "no se globaliza a versículos ajenos")
+        self.assertGreater(len(propias), 0)
+
+    def test_componentes_de_bereshit_1_1(self):
+        b = self.capa["books"]["bereshit"]["1"]["1"]
+        self.assertEqual(b["hw"][0], "בְּרֵאשִׁ֖ית")
+        self.assertEqual(b["hx"][0], [["בְּ", "P/b#0"], ["רֵאשִׁ֖ית", "H7225"]],
+                         "prefijo y raíz separados")
+        self.assertEqual(b["hs"][0], "H7225", "hs es la raíz")
         es = "En el principio creó Elohim los cielos y la tierra.".split()
-        self.assertEqual(len(st), len(es))
-        parejas = {t: s for t, s in zip(es, st) if s}
-        self.assertEqual(parejas, {"principio": "H7225", "creó": "H1254",
-                                   "Elohim": "H430", "cielos": "H8064", "tierra.": "H776"})
+        parejas = {t: s for t, s in zip(es, b["st"]) if s}
+        self.assertEqual(parejas, {"En": "P/b#0", "principio": "H7225", "creó": "H1254",
+                                   "Elohim": "H430", "los": "P/d#4", "cielos": "H8064",
+                                   "la": "P/d#6", "tierra.": "H776"},
+                         "«el» y «y» no se unen a nadie")
 
-    def test_hebreo_paralelo_al_texto(self):
+    def test_particulas_declaradas(self):
+        for pid in ("c", "d", "i", "b", "l", "k", "m", "s"):
+            self.assertIn(pid, self.capa["prefijos"])
+            self.assertIn("clase", self.capa["prefijos"][pid])
+
+    def test_build_publica_solo_donde_hay_version(self):
         with tempfile.TemporaryDirectory() as tmp:
             args = argparse.Namespace(wlc=WLC_DIR, valera=VALERA, out=tmp, lang="all",
                                       book="bereshit", books=False, no_check=False,
@@ -261,20 +285,19 @@ class TestStrongDelEspanol(unittest.TestCase):
             build_data.build(args)
             d = json.load(open(os.path.join(tmp, "he", "bereshit", "1.json")))
             v = d["verses"][0]
-            self.assertEqual(" ".join(v["hw"]), v["he"], "las palabras reproducen el texto")
+            self.assertEqual(" ".join(v["hw"]), v["he"])
             self.assertEqual(len(v["hw"]), len(v["hs"]))
-            self.assertEqual(v["hs"][0], "H7225")
+            self.assertEqual(len(v["hw"]), len(v["hx"]))
+            for palabra, comps in zip(v["hw"], v["hx"]):
+                self.assertEqual("".join(c[0] for c in comps), palabra)
+                for _txt, cid in comps:
+                    if cid and cid.startswith("P/"):
+                        self.assertIn(cid[2], self.capa["prefijos"], "código de prefijo documentado")
+            self.assertNotIn("hw", d["verses"][2], "versículo sin versión propia: sin etiquetas")
             e = json.load(open(os.path.join(tmp, "es", "bereshit", "1.json")))
-            self.assertEqual(e["verses"][0]["st"], self.capa["books"]["bereshit"]["1"]["1"])
-            # el maqqef une dos palabras con sus dos Strong
-            v2 = d["verses"][1]
-            self.assertTrue(" ".join(v2["hw"]) == v2["he"])
-            self.assertTrue(any(s and "+" in s for s in v2["hs"]), v2["hs"][:8])
-
-    def test_cobertura_suficiente(self):
-        s = self.capa["stats"]
-        self.assertGreater(s["tokens_etiquetados"] / s["tokens"], 0.25)
-        self.assertEqual(s.get("versiculos_sin_etiqueta", 0), 0)
+            self.assertEqual(e["verses"][0]["st"],
+                             self.capa["books"]["bereshit"]["1"]["1"]["st"])
+            self.assertNotIn("st", e["verses"][2], "versículo ajeno: sin etiquetas")
 
 
 if __name__ == "__main__":

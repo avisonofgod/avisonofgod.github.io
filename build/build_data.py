@@ -33,9 +33,10 @@ import es_verses                                # noqa: E402
 import slugs                                    # noqa: E402
 import wlc                                      # noqa: E402
 
-# Capa propia de números de Strong sobre el español (build/strong_es.py).
+# Capa propia de relación palabra hebrea <-> traducción (build/strong_es.py).
+# Solo cubre los versículos de la versión propia עבדיהו: no es global.
 STRONG_LAYER = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                            "es_strong", "obadias-v1.0-strong.json")
+                            "es_strong", "עבדיהו-v1.0-strong.json")
 
 ACCENT_MAP = str.maketrans("áéíóúüñÁÉÍÓÚÜÑ", "aeiouunAEIOUUN")
 
@@ -57,6 +58,39 @@ def write_json(path, payload, manifest):
     return len(blob)
 
 
+def textos_es(capas, valera, wlc_dir):
+    """{(slug, cap, n): (texto_es, cita_es)} del texto español que sirve la API."""
+    es_src = load_valera(valera)
+    out = {}
+    for book in slugs.BOOKS:
+        chaps = es_src.get(book["rv1909"], {})
+        es_verses.apply(chaps, book["slug"], capas)
+        xml = os.path.join(wlc_dir, book["osis"] + ".xml")
+        he_caps = sorted(wlc.parse_book(xml)) if os.path.isfile(xml) else []
+        for num in he_caps:                     # se recorre el capítulo HEBREO
+            cur = curated.slice_es(chaps, book["slug"], num)
+            if cur is not None:
+                for n, txt, ref in cur:
+                    out[(book["slug"], num, n)] = (txt, ref)
+                continue
+            for r in chaps.get(num, []):
+                out[(book["slug"], num, r["n"])] = (r["es"], None)
+    return out
+
+
+def cuerpo_versiculo(xml_path, cap, n):
+    """Cuerpo XML crudo de un versículo (para reanalizarlo palabra por palabra)."""
+    try:
+        with open(xml_path, encoding="utf-8") as fh:
+            xml = fh.read()
+    except OSError:
+        return None
+    for m in wlc.VERSE_RE.finditer(xml):
+        if int(m.group(2)) == cap and int(m.group(3)) == n:
+            return m.group(4)
+    return None
+
+
 def _strong_payload(strong):
     """Bloque de `versions.json` que declara la capa de Strong (si existe)."""
     if not strong:
@@ -72,20 +106,38 @@ def _strong_payload(strong):
                 os.path.abspath(__file__)))),
             "note": strong.get("note"),
             "stats": strong.get("stats"),
-            "fields": {"hebreo": ["hw (palabras)", "hs (Strong por palabra)"],
-                       "espanol": ["st (Strong por token, paralelo a v1/es)"]},
+            "scope": strong.get("scope"),
+            "prefijos": strong.get("prefijos"),
+            "fields": {"hebreo": ["hw (palabras)", "hs (raíz por palabra)",
+                                  "hx (componentes: prefijo P/<letra> + raíz)"],
+                       "espanol": ["st (id por token, paralelo a v1/es)"]},
         }
     }
 
 
-def _st(st_cap, n, texto):
-    """{"st": [...]} con un Strong por token español, o {} si no cuadra/no hay datos."""
+def _bloque_es(st_cap, n, texto):
+    """{"st": [...]} con el id por token español, o {} si no cuadra o no hay datos.
+
+    Solo existe para los versículos de la versión propia עבדיהו.
+    """
+    fila = (st_cap.get(str(n)) or {}).get("st")
+    if not fila or len(fila) != len((texto or "").split()):
+        return {}
+    return {"st": fila}
+
+
+def _bloque_he(st_cap, n, texto_he):
+    """{"hw","hs","hx"} de un versículo de la versión propia, o {} si no existe/no cuadra.
+
+    Comprueba que las palabras reconstruyan el texto hebreo servido: si no, no publica nada
+    (el lector se queda sin marcador en ese versículo, nunca con datos descuadrados).
+    """
     fila = st_cap.get(str(n))
     if not fila:
         return {}
-    if len(fila) != len((texto or "").split()):
+    if " ".join(fila.get("hw") or []) != texto_he:
         return {}
-    return {"st": fila}
+    return {k: fila[k] for k in ("hw", "hs", "hx") if k in fila}
 
 
 def load_strong_layer(path=STRONG_LAYER):
@@ -146,7 +198,7 @@ def build(args):
         xml = os.path.join(args.wlc, book["osis"] + ".xml")
         if not os.path.isfile(xml):
             sys.exit("falta la fuente hebrea: %s" % xml)
-        he_chaps = wlc.parse_book(xml, with_words=True)
+        he_chaps = wlc.parse_book(xml)
         es_chaps = es_src.get(book["rv1909"], {})
         es_verses.apply(es_chaps, book["slug"], capas_es)
 
@@ -180,8 +232,7 @@ def build(args):
                     "lang": "he",
                     "source": "Westminster Leningrad Codex (morphhb, CC BY 4.0)",
                     "verses": [{"n": v["n"], "he": v["he"], "he_plain": v["he_plain"],
-                                "hw": [w for w, _s in v["words"]],
-                                "hs": [s for _w, s in v["words"]],
+                                **_bloque_he(st_cap, v["n"], v["he"]),
                                 **({"marker": v["marker"]} if v.get("marker") else {})}
                                for v in verses],
                     "counts": {"verses": len(verses)},
@@ -194,10 +245,10 @@ def build(args):
                 if len(cur) != len(verses):
                     sys.exit("regla curada de %s/%d no cuadra: %d he vs %d es"
                              % (book["slug"], num, len(verses), len(cur)))
-                es_rows = [{"n": n, "es": txt, "es_ref": ref, **_st(st_cap, n, txt)}
+                es_rows = [{"n": n, "es": txt, "es_ref": ref, **_bloque_es(st_cap, n, txt)}
                            for n, txt, ref in cur]
             else:
-                es_rows = [{"n": n, "es": es[n], **_st(st_cap, n, es[n]),
+                es_rows = [{"n": n, "es": es[n], **_bloque_es(st_cap, n, es[n]),
                             **({"es_version": es_ov[n]} if n in es_ov else {})}
                            for n in sorted(es)]
 
@@ -279,8 +330,9 @@ def build(args):
             "he": "Westminster Leningrad Codex con morfología (openscriptures/morphhb, CC BY 4.0)",
             "es": "Reina-Valera 1909 (dominio público, getbible v2)",
             "es_versions": [c["version"] for c in capas_es],
-            "es_strong": ("números de Strong por token español — capa propia v1.0 עבדיהו "
-                          "(WLC + RV1865 etiquetada, CC0)") if strong else None,
+            "es_strong": (strong.get("scope") or "relación palabra hebrea <-> traducción "
+                          "— capa propia v1.0 %s (CC0)" % strong.get("author"))
+            if strong else None,
         }
         _idx["alignment"] = {"file": "align.json",
                              "chapters_with_divergence": len(alignment_rows),

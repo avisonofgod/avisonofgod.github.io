@@ -94,11 +94,16 @@ curl -s -o /dev/null -w "%{http_code}\n" https://avisonofgod.github.io/v1/he/gen
         (p. ej. H7225 → <em>בְּרֵאשִׁית</em> y «En el principio»).</li>
   </ul>
 
-  <h2>Relación palabra hebrea ↔ traducción (Strong)</h2>
-  <p>La capa propia <strong>v1.0 עבדיהו</strong> (autor Obadias, <strong>CC0-1.0</strong>) etiqueta el texto
-  español con los números de Strong de la palabra hebrea correspondiente. Cobertura: 258.675 de 265.211
-  palabras hebreas (98 %) y 182.393 de 537.865 tokens españoles (34 %; el resto son artículos,
-  preposiciones y conjunciones). Declaración, estadísticas y licencia en
+  <h2>Relación palabra hebrea ↔ traducción (componentes)</h2>
+  <p>Solo existe en los versículos de la versión propia <strong>v1.0 עבדיהו</strong> (autor
+  <strong>עבדיהו</strong>, <strong>CC0-1.0</strong>): el resto de la API es la RV1909 sin etiquetas. Cada palabra
+  hebrea se publica partida en sus <strong>componentes</strong> (<code>hx</code>): prefijos y partícula con un id
+  <code>P/&lt;letra&gt;</code> (código de prefijo del WLC: <code>c</code>=ו, <code>d</code>=ה artículo,
+  <code>b</code>=ב, <code>l</code>=ל, <code>m</code>=מ, <code>k</code>=כ, <code>s</code>=ש, <code>i</code>=ה
+  interrogativa) y la raíz con su número de Strong. En español, <code>st</code> da el id de cada token;
+  <code>null</code> = palabra que no se une a ningún componente (artículos y partículas sueltas: se quedan sin
+  marcar). Ejemplo, Bereshit 1:1 — <em>בְּרֵאשִׁית</em> = <code>בְּ</code> (P/b → «En») + <code>רֵאשִׁית</code>
+  (H7225 → «principio»); «el» queda sin pareja. Declaración y estadísticas en
   <a href="/v1/versions.json">/v1/versions.json</a> (<code>strong_layer</code>).</p>
 
   <h2>Numeración hebrea vs. española</h2>

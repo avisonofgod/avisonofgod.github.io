@@ -1,28 +1,35 @@
-"""Retro-etiquetado del español del Tanaj con números de Strong (capa propia v1.0 עבדיהו).
+"""Relación palabra hebrea <-> traducción, SOLO para la versión propia עבדיהו (v1.0).
 
-Qué hace
---------
-El español de la API (RV1909 + las capas de `build/es_versions/`) NO trae números de
-Strong: `data/valera.json` lo anuncia pero 0 de 31.084 versículos lo traen. Este módulo
-construye la relación palabra hebrea <-> palabra española con un puente Strong:
+Regla
+-----
+El resaltado no es global: existe únicamente en los versículos que la capa propia
+(`build/es_versions/עבדיהו-v1.0.json`, autor עבדיהו, CC0-1.0) ha reescrito. El resto de la
+API (RV1909 tal cual) va sin etiquetas y el lector no ofrece marcador ahí.
 
-  WLC (morphhb)                  RV1865 etiquetada (CC0)        texto propio
-  palabra hebrea -> H####   <->  palabra española -> H####  ==>  token ES -> H####
+Qué se publica por versículo (lo consume el lector)
+---------------------------------------------------
+    hw  palabras hebreas, en el orden del texto servido (" ".join(hw) == he)
+    hs  Strong de la RAÍZ de cada palabra (o None si no tiene)
+    hx  componentes de cada palabra: [[["בְּ","P/b"],["רֵאשִׁ֖ית","H7225"]], ...]
+        - prefijo/partícula -> id "P/<letra del lemma>" (tabla PREFIJOS)
+        - raíz -> su número de Strong ("H7225")
+    st  id por token español (paralelo a `es.split(" ")`); None = palabra española que no
+        se une a ninguna palabra hebrea (se deja sin marcar)
 
-Para cada versículo se mapean las etiquetas de la RV1865 al texto español que sirve la
-API (que puede estar reescrito por la capa de Obadias) usando la posición declarada
-(`pos`, 0-based) más un desplazamiento constante por versículo (moda de los aciertos
-exactos) y, si no cuadra, emparejamiento monótono por palabra normalizada.
-
-Salida (versionada, es la fuente de verdad del etiquetado)
-    build/es_strong/obadias-v1.0-strong.json
-      books.<slug>.<capítulo>.<versículo> = [Strong|null, ...]  (paralelo a los tokens
-      del texto español que sirve `v1/es/...`, separados por espacios)
+Cómo se empareja
+----------------
+1. Raíces: puente Strong con la RV1865 etiquetada (CC0, pin en fetch_sources.sh):
+   aciertos exactos monótonos -> moda del desplazamiento -> asignación por posición.
+2. Prefijos: cada prefijo toma el token español libre que va DELANTE de su raíz y que
+   pertenece a su clase (artículo -> el/la/los/las; waw -> y/pero/…; preposición ->
+   en/con/por/…). Si no hay token de su clase, quedan sin pareja: "deja las partículas
+   que no se unan a ninguna".
+   Ejemplo (Bereshit 1:1): בְּרֵאשִׁית -> בְּ = «En» (P/b) y רֵאשִׁית = «principio» (H7225);
+   el artículo suelto «el» no se une a nadie y no se marca.
 
 Uso
-    python3 build/strong_es.py                       # los 39 libros
-    python3 build/strong_es.py --books bereshit      # uno (pruebas)
-    python3 build/strong_es.py --dry                 # no escribe, solo informe
+    python3 build/strong_es.py           # versículos de la capa עבדיהו
+    python3 build/strong_es.py --dry
 """
 
 import argparse
@@ -36,31 +43,53 @@ from collections import Counter
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import build_data                                # noqa: E402
-import curated                                   # noqa: E402
 import es_verses                                 # noqa: E402
 import slugs                                     # noqa: E402
 import wlc                                       # noqa: E402
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SALIDA = os.path.join(RAIZ, "build", "es_strong", "obadias-v1.0-strong.json")
+AUTOR = "עבדיהו"
+SALIDA = os.path.join(RAIZ, "build", "es_strong", "%s-v1.0-strong.json" % AUTOR)
 RV1865_DIR = os.path.join(RAIZ, "data", "rv1865_strongs")
 
 META = {
     "version": "1.0",
     "short": "v1.0",
-    "author": "Obadias (עבדיהו)",
+    "author": AUTOR,
     "license": "CC0 1.0 Universal (dedicación al dominio público)",
     "spdx": "CC0-1.0",
-    "source": ("Retro-etiquetado propio del texto español de la API: WLC con morfología "
-               "(openscriptures/morphhb, CC BY 4.0) + Reina-Valera 1865 con números de "
-               "Strong a nivel de palabra (ohneklavier-creator/reina-valera-1865-strongs-"
-               "concordancia, CC0-1.0)"),
-    "note": ("Los Strong marcan el TOKEN español (separado por espacios) que corresponde a "
-             "la palabra hebrea del mismo versículo. `null` = palabra española sin etiqueta "
-             "(artículos, preposiciones, conjunciones)."),
+    "source": ("Relación palabra hebrea <-> traducción sobre la versión propia (texto base "
+               "Reina-Valera 1909, dominio público). Raíces por puente Strong con la RV1865 "
+               "etiquetada (ohneklavier-creator/reina-valera-1865-strongs-concordancia, "
+               "CC0-1.0); componentes hebreos del WLC (openscriptures/morphhb, CC BY 4.0)."),
+    "scope": "solo los versículos de la capa build/es_versions/%s-v1.0.json" % AUTOR,
+    "note": ("`hx` separa los prefijos de la raíz hebrea; `st` da el id por palabra "
+             "española. Los id «P/<letra>» son los códigos de prefijo del WLC (morphhb) y "
+             "no son números de Strong propios."),
 }
 
-STRONG_RE = re.compile(r"[HG]\d+")
+# Códigos de prefijo del WLC (morphhb) -> letra hebrea, glosa y clase de palabras
+# españolas que pueden ocuparlo. Tabla propia, comprobada contra `morph` del propio XML
+# (c=ו HC…, d=ה HTd… artículo, i=ה HTi… interrogativa, b/l/m/k preposiciones, s=ש HTr…).
+PREFIJOS = {
+    "c": {"he": "ו", "glosa": "y, pero, ni… (conjunción)",
+          "clase": ["y", "e", "pero", "mas", "sino", "ni", "entonces", "asi", "tambien", "aun"]},
+    "d": {"he": "ה", "glosa": "el, la, los, las (artículo)",
+          "clase": ["el", "la", "los", "las", "lo"]},
+    "i": {"he": "ה", "glosa": "interrogativa (¿?)", "clase": []},
+    "b": {"he": "ב", "glosa": "en, con, por (preposición)",
+          "clase": ["en", "con", "por", "de", "a", "entre", "contra", "sobre", "segun", "para"]},
+    "l": {"he": "ל", "glosa": "a, para (preposición)",
+          "clase": ["a", "al", "para", "por", "de", "en", "hacia"]},
+    "k": {"he": "כ", "glosa": "como (comparativo)", "clase": ["como", "cual", "segun"]},
+    "m": {"he": "מ", "glosa": "de, desde (preposición)",
+          "clase": ["de", "desde", "entre", "sin", "mas", "fuera"]},
+    "s": {"he": "ש", "glosa": "que (relativo)", "clase": ["que", "lo", "cual"]},
+}
+
+STRONG_RE = re.compile(r"[HG]\d+")          # números de Strong ya etiquetados (H7225)
+LEMMA_NUM = re.compile(r"\d+")              # raíz dentro del `lemma` del WLC ("b/7225")
+CONSONANTE = re.compile(r"[\u05d0-\u05ea]")
 ACCENT = str.maketrans("áéíóúüñÁÉÍÓÚÜÑ", "aeiouunAEIOUUN")
 
 
@@ -71,65 +100,50 @@ def norm(txt):
     return "".join(c for c in t if c.isalnum())
 
 
-def he_words(body):
-    """[(palabra_hebrea, strong_o_None)] del versículo, en el orden del texto servido."""
-    body = wlc.NOTE_RE.sub(" ", body)
-    words, cur, curstrong = [], [], []
+def partir_palabra(palabra, lemma):
+    """[(texto, id), ...] de una palabra hebrea: prefijos (P/<letra>) + raíz (H####).
 
-    def flush():
-        if cur:
-            w = "".join(cur).strip()
-            if w:
-                words.append((w, curstrong[0] if curstrong else None))
-            cur.clear()
-            curstrong.clear()
-
-    for m in TOK_RE.finditer(body):
-        if m.group(1) is not None:
-            flush()
-            cur.append(wlc._text(m.group(2)).replace("/", ""))
-            lm = LEMMA_RE.search(m.group(1))
-            nums = re.findall(r"\d+", lm.group(1)) if lm else []
-            curstrong.append("H" + nums[-1] if nums else None)
-        else:
-            typ, txt = m.group(3), wlc._text(m.group(4)).strip()
-            if typ == "x-maqqef":
-                cur.append(wlc.MAQQEF)
-            elif typ == "x-sof-pasuq":
-                cur.append(wlc.SOF_PASUQ)
-            elif typ == "x-paseq":
-                flush()
-                words.append((wlc.PASEQ, None))
-            elif typ in wlc.PARA_MARKS:
-                pass
-            elif txt:
-                cur.append(txt)
-    flush()
-    return words
-
-
-def es_textos(capas, valera, wlc_dir):
-    """{(slug, cap, n): (texto_es, cita_es)} del texto que sirve la API (capa incluida).
-
-    En los libros con regla curada (Yoel, Malaquías) el versículo lleva numeración hebrea
-    y `cita_es` da la referencia de la RV1909 («3:1»), que es la que usa la fuente etiquetada.
+    El número de prefijos sale del `lemma` del WLC ("b/7225" -> uno; "c/d/776" -> dos).
+    Si el texto no tiene consonantes suficientes, la palabra queda entera con su raíz.
     """
-    es_src = build_data.load_valera(valera)
-    out = {}
-    for book in slugs.BOOKS:
-        chaps = es_src.get(book["rv1909"], {})
-        es_verses.apply(chaps, book["slug"], capas)
-        xml = os.path.join(wlc_dir, book["osis"] + ".xml")
-        he_caps = sorted(wlc.parse_book(xml)) if os.path.isfile(xml) else []
-        for num in he_caps:                     # se recorre el capítulo HEBREO (como el build)
-            cur = curated.slice_es(chaps, book["slug"], num)
-            if cur is not None:
-                for n, txt, ref in cur:
-                    out[(book["slug"], num, n)] = (txt, ref)
-                continue
-            for r in chaps.get(num, []):
-                out[(book["slug"], num, r["n"])] = (r["es"], None)
-    return out
+    partes = (lemma or "").split("/")
+    codigos = [re.findall(r"[a-z]+", p) for p in partes[:-1]] if len(partes) > 1 else []
+    raiz = LEMMA_NUM.findall(partes[-1]) if partes else []
+    raiz = "H" + raiz[-1] if raiz else None
+    cortes = len(codigos)
+    letras = [i for i, ch in enumerate(palabra) if CONSONANTE.match(ch)]
+    if cortes == 0 or len(letras) < cortes + 1:
+        return [(palabra, raiz)]
+    idx = [letras[k] for k in range(cortes + 1)] + [len(palabra)]
+    comps = []
+    for k in range(cortes):
+        comps.append((palabra[idx[k]:idx[k + 1]], "P/" + codigos[k][0]))
+    comps.append((palabra[idx[cortes]:], raiz))
+    return comps
+
+
+def he_analisis(chapter_body):
+    """[(palabra, Strong de la raíz, [(componente, id), …])] + marcas de párrafo.
+
+    Une el maqqef con la MISMA regla que `wlc.extract_verse` (wlc.grupos_maqqef), así las
+    palabras coinciden exactamente con el texto servido.
+    """
+    crudas, marcas = wlc.tokens_con_lemma(wlc.NOTE_RE.sub(" ", chapter_body))
+    salida = []
+    for grupo in wlc.grupos_maqqef(crudas):   # len(salida) = índice de la palabra
+        texto = "".join(crudas[i][0] for i in grupo)
+        fuertes = [f for i in grupo for f in (crudas[i][1] or "").split("+") if f]
+        comps = []
+        for i in grupo:
+            comps.extend(partir_palabra(crudas[i][0], crudas[i][2]))
+        # id único por aparición: "P/d#4" (artículo de la palabra 4 del versículo), para que
+        # tocar «los» marque ESE artículo y no todos los de su clase.
+        comps = [(unicodedata.normalize("NFC", t),
+                  ("%s#%d" % (cid, len(salida)) if cid and cid.startswith("P/") else cid))
+                 for t, cid in comps]
+        unida = "+".join(dict.fromkeys(fuertes)) or None
+        salida.append((unicodedata.normalize("NFC", texto), unida, comps))
+    return salida, "".join(marcas)
 
 
 def etiquetas_rv1865():
@@ -166,11 +180,10 @@ def etiquetas_rv1865():
     return salida
 
 
-def etiquetar(tokens, filas):
-    """[Strong|None] por token español. Devuelve (etiquetas, exactos, asignados, offset)."""
+def etiquetar_raices(tokens, filas):
+    """[Strong|None] por token español (solo raíces). Devuelve (etiquetas, exactos, asignados)."""
     etiquetas = [None] * len(tokens)
     normas = [norm(t) for t in tokens]
-    # 1) aciertos exactos monótonos -> desplazamiento más común
     deltas, ultimo, exactos = Counter(), -1, 0
     for pos, palabra, _st in filas:
         pn = norm(palabra)
@@ -183,7 +196,6 @@ def etiquetar(tokens, filas):
                 exactos += 1
                 break
     offset = deltas.most_common(1)[0][0] if deltas else 0
-    # 2) asignación por posición (+offset), con un hueco de tolerancia
     asignados = 0
     for pos, palabra, st in filas:
         objetivo = pos + offset
@@ -191,14 +203,72 @@ def etiquetar(tokens, filas):
             etiquetas[objetivo] = st
             asignados += 1
             continue
-        # hueco: el token vecino libre más cercano (el texto pudo reescribirse)
         for d in (1, -1, 2, -2, 3, -3):
             j = objetivo + d
             if 0 <= j < len(tokens) and etiquetas[j] is None:
                 etiquetas[j] = st
                 asignados += 1
                 break
-    return etiquetas, exactos, asignados, offset
+    return etiquetas, exactos, asignados
+
+
+def repartir_prefijos(analisis, etiquetas, tokens):
+    """Coloca cada prefijo en un token español libre DELANTE de su raíz, de su misma clase.
+
+    El token que sobra no se une a nadie: se queda sin id (partícula suelta).
+    """
+    idx_raiz = {}
+    for k, (_txt, strong, _comps) in enumerate(analisis):
+        if not strong:
+            continue
+        for j, e in enumerate(etiquetas):
+            if e == strong and j not in idx_raiz.values():
+                idx_raiz[k] = j
+                break
+    for k, (_txt, _strong, comps) in enumerate(analisis):
+        prefijos = [c for c in comps if c[1] and c[1].startswith("P/")]
+        if not prefijos or k not in idx_raiz:
+            continue
+        fin = idx_raiz[k]
+        inicio = -1
+        for j in range(k - 1, -1, -1):
+            if j in idx_raiz and idx_raiz[j] < fin:
+                inicio = idx_raiz[j]
+                break
+        huecos = [j for j in range(inicio + 1, fin) if etiquetas[j] is None]
+        for _txt, pid in prefijos:
+            clase = PREFIJOS.get(pid.split("#")[0][2:], {}).get("clase", [])
+            elegido = None
+            for j in huecos:
+                if norm(tokens[j]) in clase:
+                    elegido = j
+                    break
+            if elegido is None:
+                continue
+            etiquetas[elegido] = pid
+            huecos.remove(elegido)
+    return etiquetas
+
+
+def analizar_versiculo(cuerpo, tokens, cita, tags, slug, cap, n):
+    """{"hw","hs","hx","st"} de un versículo, o None si falta la fuente etiquetada."""
+    analisis, _marcas = he_analisis(cuerpo)
+    filas = tags.get(slug, {}).get(cap, {}).get(n)
+    if filas is None and cita:                  # libro curado: la cita usa otra numeración
+        try:
+            c2, n2 = (int(x) for x in str(cita).split(":"))
+            filas = tags.get(slug, {}).get(c2, {}).get(n2)
+        except (TypeError, ValueError):
+            filas = None
+    filas = filas or []
+    etiquetas, exactos, asignados = etiquetar_raices(tokens, filas)
+    etiquetas = repartir_prefijos(analisis, etiquetas, tokens)
+    return {
+        "hw": [t for t, _s, _c in analisis],
+        "hs": [s for _t, s, _c in analisis],
+        "hx": [[[ct, cid] for ct, cid in comps] for _t, _s, comps in analisis],
+        "st": etiquetas,
+    }, len(filas), exactos, asignados
 
 
 def main():
@@ -206,72 +276,61 @@ def main():
     ap.add_argument("--wlc", default=os.path.join(RAIZ, "data", "morphhb", "wlc"))
     ap.add_argument("--valera", default=os.path.join(RAIZ, "data", "valera.json"))
     ap.add_argument("--out", default=SALIDA)
-    ap.add_argument("--books", default=None, help="slug o lista separada por comas")
     ap.add_argument("--dry", action="store_true")
     args = ap.parse_args()
 
     if not os.path.isdir(RV1865_DIR):
         sys.exit("falta %s (bash build/fetch_sources.sh)" % RV1865_DIR)
     capas = es_verses.load()
-    textos = es_textos(capas, args.valera, args.wlc)
+    cubiertos = set()
+    for capa in capas:                          # SOLO los versículos de la versión propia
+        cubiertos.update(capa["verses"].keys())
+    textos = build_data.textos_es(capas, args.valera, args.wlc)
     tags = etiquetas_rv1865()
 
-    quiere = set(args.books.split(",")) if args.books else None
-    libros = [b for b in slugs.BOOKS if (not quiere or b["slug"] in quiere)]
-    out_books, stats = {}, Counter()
-    for book in libros:
-        xml = os.path.join(args.wlc, book["osis"] + ".xml")
-        if not os.path.isfile(xml):
-            sys.exit("falta la fuente hebrea: %s" % xml)
-        versos = tags.get(book["slug"], {})
-        propios = sorted(k for k in textos if k[0] == book["slug"])
-        por_cap = {}
-        for _slug, cap, n in propios:
-            txt, cita = textos[(_slug, cap, n)]
-            por_vers = versos.get(cap, {})
-            filas = por_vers.get(n)
-            if filas is None and cita:          # libro curado: la cita usa otra numeración
-                try:
-                    c2, n2 = (int(x) for x in str(cita).split(":"))
-                    filas = versos.get(c2, {}).get(n2)
-                except (TypeError, ValueError):
-                    filas = None
-            filas = filas or []
-            tokens = txt.split()
-            et, exactos, asignados, _off = etiquetar(tokens, filas)
-            stats["versiculos"] += 1
-            stats["tokens"] += len(tokens)
-            stats["tokens_etiquetados"] += sum(1 for e in et if e)
-            stats["etiquetas"] += len(filas)
-            stats["aciertos_exactos"] += exactos
-            stats["asignados_por_posicion"] += asignados
-            if not filas:
-                stats["versiculos_sin_fuente"] += 1
-            elif not asignados:
-                stats["versiculos_sin_etiqueta"] += 1
-            por_cap.setdefault(cap, {})[n] = et
-        out_books[book["slug"]] = por_cap
+    stats = Counter()
+    libros = {}
+    for slug, cap, n in sorted(cubiertos):
+        xml = os.path.join(args.wlc, slugs.BY_SLUG[slug]["osis"] + ".xml")
+        cuerpo = build_data.cuerpo_versiculo(xml, cap, n)
+        if cuerpo is None:
+            stats["sin_hebreo"] += 1
+            continue
+        txt, cita = textos.get((slug, cap, n), (None, None))
+        if txt is None:
+            stats["sin_es"] += 1
+            continue
+        tokens = txt.split()
+        bloque, n_filas, exactos, asignados = analizar_versiculo(
+            cuerpo, tokens, cita, tags, slug, cap, n)
+        libros.setdefault(slug, {}).setdefault(cap, {})[n] = bloque
+        stats["versiculos"] += 1
+        stats["tokens"] += len(tokens)
+        stats["tokens_etiquetados"] += sum(1 for e in bloque["st"] if e)
+        stats["palabras"] += len(bloque["hw"])
+        stats["componentes"] += sum(len(c) for c in bloque["hx"])
+        stats["etiquetas_fuente"] += n_filas
+        stats["aciertos_exactos"] += exactos
+        stats["raices_emparejadas"] += asignados
+        if not n_filas:
+            stats["versiculos_sin_fuente"] += 1
 
-    payload = dict(META, stats=dict(stats), books=out_books)
+    payload = dict(META, prefijos=PREFIJOS, stats=dict(stats), books=libros)
     if args.dry:
-        print("(dry) libros=%d" % len(out_books))
+        print("(dry) versículos=%d" % stats["versiculos"])
     else:
         os.makedirs(os.path.dirname(args.out), exist_ok=True)
         blob = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         with open(args.out, "wb") as fh:
             fh.write(blob)
-        print("escrito %s (%.2f MB)" % (args.out, len(blob) / 1048576))
+        print("escrito %s (%.1f KB)" % (args.out, len(blob) / 1024))
 
-    print("versículos %d | tokens %d | tokens con Strong %d (%.1f%%)"
-          % (stats["versiculos"], stats["tokens"], stats["tokens_etiquetados"],
-             100 * stats["tokens_etiquetados"] / max(1, stats["tokens"])))
-    print("etiquetas %d | exactas %d (%.1f%%) | por posición %d | versículos sin etiqueta %d"
-          % (stats["etiquetas"], stats["aciertos_exactos"],
-             100 * stats["aciertos_exactos"] / max(1, stats["etiquetas"]),
-             stats["asignados_por_posicion"], stats["versiculos_sin_etiqueta"]))
-    if stats["versiculos_sin_fuente"]:
-        print("versículos sin fuente etiquetada (RV1865 no los cubre): %d"
-              % stats["versiculos_sin_fuente"])
+    print("autor %s | versículos %d | palabras %d | componentes %d"
+          % (AUTOR, stats["versiculos"], stats["palabras"], stats["componentes"]))
+    print("tokens ES %d | con id %d (%.1f%%) | raíces emparejadas %d | sin fuente %d"
+          % (stats["tokens"], stats["tokens_etiquetados"],
+             100 * stats["tokens_etiquetados"] / max(1, stats["tokens"]),
+             stats["raices_emparejadas"], stats["versiculos_sin_fuente"]))
 
 
 if __name__ == "__main__":

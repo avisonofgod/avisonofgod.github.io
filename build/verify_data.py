@@ -22,6 +22,7 @@ import sys
 OUT = sys.argv[1] if len(sys.argv) > 1 else "v1"
 REQUIRED_SECTIONS = {"torah": 5, "neviim": 21, "ketuvim": 13}
 HEBREW_OK = re.compile(r"^[\u0590-\u05c7\u05d0-\u05ea\u05f3\u05f4 ]+$")
+STRONG_OK = re.compile(r"^H?\d+(\+H?\d+)*$")
 
 fail = []
 ok = 0
@@ -77,8 +78,7 @@ def main():
     bad_palabras = []
     total_he = total_es = 0
     he_pal = he_pal_strong = es_tok = es_tok_strong = 0
-    es_ver_con_st = 0
-    es_ver_sin_st = []
+    etiquetados_he, etiquetados_es, con_version = set(), set(), set()
     for book in idx["books"]:
         slug = book["slug"]
         for cap in range(1, book["chapters"] + 1):
@@ -99,14 +99,22 @@ def main():
                 if not v.get("he_plain"):
                     bad_ref.append("%s/%d:%d" % (slug, cap, v["n"]))
                 ref = "%s/%d:%d" % (slug, cap, v["n"])
-                hw, hs = v.get("hw"), v.get("hs")
-                if not hw or not hs:
-                    bad_palabras.append(ref + " (sin hw/hs)")
-                else:
+                hw, hs, hx = v.get("hw"), v.get("hs"), v.get("hx")
+                if hw or hs or hx:              # solo los versículos de la versión propia
+                    etiquetados_he.add((slug, cap, v["n"]))
+                    if not hw or not hs or not hx:
+                        bad_palabras.append(ref + " (hw/hs/hx incompletos)")
+                        continue
                     if " ".join(hw) != t:
                         bad_palabras.append(ref + " (join != he)")
-                    if len(hw) != len(hs):
-                        bad_palabras.append(ref + " (hs desalineado)")
+                    if len(hw) != len(hs) or len(hw) != len(hx):
+                        bad_palabras.append(ref + " (hs/hx desalineados)")
+                    for palabra, comps in zip(hw, hx):
+                        if "".join(c[0] for c in comps) != palabra:
+                            bad_palabras.append(ref + " (componentes != palabra)")
+                        for _txt, cid in comps:
+                            if cid and not (cid.startswith("P/") or STRONG_OK.match(cid)):
+                                bad_palabras.append(ref + " (id raro: %s)" % cid)
                     he_pal += len(hw)
                     he_pal_strong += sum(1 for s in hs if s)
             ep = os.path.join(OUT, "es", slug, "%d.json" % cap)
@@ -118,12 +126,11 @@ def main():
                     bad_schema.append(ep + " (alignment.he)")
                 total_es += len(e["verses"])
                 for v in e["verses"]:
+                    if v.get("es_version"):
+                        con_version.add((slug, cap, v["n"]))
                     st = v.get("st")
-                    if v.get("es"):
-                        if st and any(st):
-                            es_ver_con_st += 1
-                        else:
-                            es_ver_sin_st.append("%s/%d:%d" % (slug, cap, v["n"]))
+                    if st:
+                        etiquetados_es.add((slug, cap, v["n"]))
                     if not st:
                         continue
                     if len(st) != len((v["es"] or "").split()):
@@ -133,20 +140,17 @@ def main():
     check(not bad_schema, "esquema de capítulos he/es", len(bad_schema))
     check(not bad_he, "hebreo sin marcas XML ni «/» y solo caracteres hebreos", len(bad_he))
     check(not bad_ref, "hebreo con `he_plain` (búsqueda sin niqqud)", len(bad_ref))
-    check(not bad_palabras, "palabras con Strong alineadas (`hw`/`hs`, `st`)",
+    check(not bad_palabras, "palabras y componentes bien formados (`hw`/`hs`/`hx`, `st`)",
           len(bad_palabras))
-    check(he_pal > 200000 and he_pal_strong / max(1, he_pal) > 0.5,
-          "hebreo: palabras con Strong",
-          "%d/%d (%.0f%%)" % (he_pal_strong, he_pal, 100 * he_pal_strong / max(1, he_pal)))
-    check(es_tok_strong / max(1, es_tok) > 0.2,
-          "español: tokens con Strong (relación palabra hebrea <-> traducción)",
+    check(etiquetados_he == etiquetados_es == con_version and con_version,
+          "el etiquetado cubre EXACTAMENTE los versículos de la versión propia עבדיהו",
+          "he=%d es=%d versión=%d" % (len(etiquetados_he), len(etiquetados_es), len(con_version)))
+    check(he_pal > 0 and he_pal_strong == he_pal,
+          "hebreo: cada palabra de los versículos propios trae su raíz",
+          "%d palabras (%d con Strong)" % (he_pal, he_pal_strong))
+    check(es_tok_strong > 0 and es_tok_strong <= es_tok,
+          "español: tokens con id (resto = partículas sueltas)",
           "%d/%d (%.0f%%)" % (es_tok_strong, es_tok, 100 * es_tok_strong / max(1, es_tok)))
-    check(len(es_ver_sin_st) <= 5,
-          "español: versículos sin relación Strong (tolerancia: la fuente no los cubre)",
-          "%s" % (es_ver_sin_st or "ninguno"))
-    check(es_ver_con_st / max(1, total_es) > 0.95,
-          "español: versículos con relación Strong",
-          "%d/%d (%.1f%%)" % (es_ver_con_st, total_es, 100 * es_ver_con_st / max(1, total_es)))
     check(total_he == 23213, "suma de versículos hebreos recorridos", total_he)
     check(total_es == c.get("verses_es"), "suma de versículos españoles", total_es)
 

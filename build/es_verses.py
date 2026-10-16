@@ -9,7 +9,7 @@ Formato de cada archivo (`build/es_versions/<nombre>.json`):
     {
       "version": "1.0",                    # nombre de la versión, va en v1/versions.json
       "short": "v1.0",                     # etiqueta corta, va por versículo (es_version)
-      "author": "Obadias",                 # quién hizo la revisión
+      "author": "עבדיהו",                  # quién hizo la revisión
       "source": "…",                       # cita bibliográfica
       "license": "CC0 1.0 Universal…",     # condiciones de uso / derechos
       "spdx": "CC0-1.0",                   # identificador de licencia

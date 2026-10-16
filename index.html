@@ -166,11 +166,12 @@ footer a { color: var(--accent); }
   vía <a href="https://github.com/openscriptures/morphhb" rel="noopener">openscriptures/morphhb</a>
   (CC BY 4.0). Español: <em>Reina-Valera 1909</em> (dominio público) vía
   <a href="https://api.getbible.net/" rel="noopener">getbible v2</a>.
-  Los versículos revisados (versión <em>1.0</em>, autor <em>Obadias</em>, CC0) van marcados
+  Los versículos revisados (versión <em>1.0</em>, autor <em>עבדיהו</em>, CC0) van marcados
   uno a uno; autor, licencia y avance están en <a href="/v1/versions.json">/v1/versions.json</a>.
   Secciones: Torá (5 libros), Nevi'im (21), Ketuvim (13) — 929 capítulos, 23.213 versículos.</p>
-  <p id="ayuda-marca">Toca cualquier palabra —hebrea o española— para ver su correspondencia
-  (<em>בְּרֵאשִׁית</em> → «En el principio»); el pie indica el número de Strong.</p>
+  <p id="ayuda-marca">Versión propia <em>עבדיהו</em>: toca un componente hebreo o su palabra
+  española y se marcan los dos (<em>בְּ</em> → «En»; <em>רֵאשִׁית</em> → «principio»). Las partículas que no
+  se unen a ningún componente se quedan sin marcar.</p>
   <p>API JSON de solo lectura en <a href="/v1/index.json">/v1/index.json</a> ·
   documentación en <a href="api.html">api.html</a> ·
   numeración hebrea vs. española en <a href="/v1/align.json">/v1/align.json</a>.</p>
@@ -233,16 +234,21 @@ function chapters(b) {
 /* ── lectura ────────────────────────────────────────────────────────── */
 const sinNiqqud = (s) => (s || "").replace(/[\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7]/g, "");
 
-/* Palabra tocable: lleva su índice y su número de Strong (vacío si no tiene). */
-function spanW(txt, strong, i, clase) {
+/* Pieza tocable: lleva el índice de su palabra y su id (Strong de raíz o P/<letra>). */
+function spanW(txt, id, i, clase) {
   return "<span class='w" + (clase ? " " + clase : "") + "' data-i='" + i + "' data-s='" +
-    (strong || "") + "'>" + esc(txt) + "</span>";
+    (id || "") + "'>" + esc(txt) + "</span>";
 }
 
+/* Hebreo: cada palabra en sus componentes (בְּ + רֵאשִׁית), tal como vienen en `hx`.
+   Solo los versículos de la versión propia עבדיהו traen `hw`/`hs`/`hx`. */
 function verseHe(v) {
   let cuerpo;
   if (v.hw && v.hw.length) {
-    cuerpo = v.hw.map((w, i) => spanW(state.niqqud ? w : sinNiqqud(w), v.hs && v.hs[i], i)).join(" ");
+    cuerpo = v.hw.map((w, i) => {
+      const comps = (v.hx && v.hx[i]) || [[w, v.hs && v.hs[i]]];
+      return comps.map((c) => spanW(state.niqqud ? c[0] : sinNiqqud(c[0]), c[1], i)).join("");
+    }).join(" ");
   } else {
     cuerpo = esc(state.niqqud ? v.he : v.he_plain);
   }
@@ -448,61 +454,32 @@ function limpiarMarca() {
 
 const palabrasDe = (li, sel) => Array.prototype.slice.call(li.querySelectorAll(sel + " .w"));
 
-/* Span español de una palabra: absorbe los huecos sin Strong que van DELANTE
-   («En el principio» para H7225, «los cielos» para H8064) y, solo si no queda
-   ninguna ancla después, también los de detrás. */
-function spanEs(ws, i) {
-  let a = i, b = i;
-  while (a - 1 >= 0 && !ws[a - 1].dataset.s) a--;
-  if (!ws.slice(i + 1).some((x) => x.dataset.s)) {
-    while (b + 1 < ws.length && !ws[b + 1].dataset.s) b++;
-  }
-  return [a, b];
-}
+/* Glosa de los prefijos (códigos del WLC); solo informativa. */
+const PREFIJOS = {
+  c: "ו y, pero (conjunción)", d: "ה el, la (artículo)", i: "ה interrogativa",
+  b: "ב en, con (preposición)", l: "ל a, para", k: "כ como", m: "מ de, desde",
+  s: "ש que (relativo)",
+};
+const glosaId = (id) => (id.slice(0, 2) === "P/" ? (PREFIJOS[id.slice(2, 3)] || "prefijo") : id);
 
-function strongVecino(ws, i) {
-  for (let d = 1; d < ws.length; d++) {
-    for (const j of [i - d, i + d]) {
-      if (j >= 0 && j < ws.length && ws[j].dataset.s) return j;
-    }
-  }
-  return -1;
-}
-
-const strongsDe = (el) => (el.dataset.s || "").split("+").filter((s) => s);
-const comparte = (el, strongs) => strongsDe(el).some((s) => strongs.indexOf(s) >= 0);
-
+/* Se marca EXACTAMENTE lo que comparte id: el componente hebreo y sus palabras
+   españolas (o al revés). Las partículas sin id no se unen a nada: no se marcan. */
 function pintarPalabra(li, el) {
   limpiarMarca();
-  const bloque = el.closest(".he") ? "he" : "es";
-  const ws = palabrasDe(li, "." + bloque);
-  const he = palabrasDe(li, ".he"), es = palabrasDe(li, ".es");
-  let i = ws.indexOf(el), strongs = strongsDe(el);
-
-  if (!strongs.length) {                          // sin Strong: se apoya en la vecina
-    const j = strongVecino(ws, i);
-    if (j < 0) { el.classList.add("marca"); return; }
-    strongs = strongsDe(ws[j]);
-    if (bloque === "es") i = j; else el = ws[j];
-  }
-  el.classList.add("marca");
-
-  if (bloque === "es") {
-    const [a, b] = spanEs(es, i);
-    for (let k = a; k <= b; k++) es[k].classList.add("marca");
-  } else {
-    for (const e of es) {
-      const k = es.indexOf(e);
-      if (!comparte(e, strongs)) continue;
-      const [a, b] = spanEs(es, k);
-      for (let j = a; j <= b; j++) es[j].classList.add("marca");
+  const id = el.dataset.s;
+  if (!id) return;
+  for (const bloque of [".he", ".es"]) {
+    for (const w of palabrasDe(li, bloque)) {
+      if (w.dataset.s === id) w.classList.add("marca");
     }
   }
-  for (const h of he) if (comparte(h, strongs)) h.classList.add("marca");
-
-  const mh = he.filter((h) => h.classList.contains("marca")).map((h) => h.textContent)[0] || "";
-  const me = es.filter((h) => h.classList.contains("marca")).map((h) => h.textContent).join(" ");
-  $("#marca-info").innerHTML = "<b>" + esc(strongs.join("+")) + "</b> · " + esc(mh) + " = " + esc(me);
+  const mh = palabrasDe(li, ".he").filter((w) => w.classList.contains("marca"))
+    .map((w) => w.textContent).join(" ");
+  const me = palabrasDe(li, ".es").filter((w) => w.classList.contains("marca"))
+    .map((w) => w.textContent).join(" ");
+  const glosa = glosaId(id);
+  $("#marca-info").innerHTML = "<b>" + esc(id) + "</b>" + (glosa === id ? "" : " · " + esc(glosa)) +
+    " · " + esc(mh) + " = " + esc(me);
 }
 
 document.addEventListener("mouseover", (e) => {
