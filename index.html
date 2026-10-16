@@ -118,7 +118,7 @@ footer a { color: var(--accent); }
 <a class="skip" href="#lectura">Saltar al texto</a>
 
 <header>
-  <div class="brand">Tanaj<br><span>Torá · Nevi'im · Ketuvim</span></div>
+  <div class="brand">Tanaj</div>
   <div class="grow"><input id="q" type="search" placeholder="Buscar en el Tanaj (hebreo o español) — tecla /"
        aria-label="Buscar en el Tanaj" autocomplete="off"></div>
   <div class="seg" role="group" aria-label="Idioma">
@@ -127,8 +127,6 @@ footer a { color: var(--accent); }
     <button data-mode="es" aria-pressed="false">Español</button>
   </div>
   <button class="tool" id="nk" aria-pressed="true" title="Mostrar u ocultar niqqud y te'amim">ניקוד</button>
-  <button class="tool" id="fminus" title="Texto más pequeño">A−</button>
-  <button class="tool" id="fplus" title="Texto más grande">A+</button>
   <button class="tool" id="rnd" title="Versículo al azar">Al azar</button>
 </header>
 
@@ -383,11 +381,6 @@ $("#nk").addEventListener("click", () => {
   $("#nk").setAttribute("aria-pressed", String(state.niqqud));
   load(state.slug, state.chapter);
 });
-let fs = 1.55;
-const setFont = (d) => { fs = Math.min(2.6, Math.max(1.1, fs + d)); document.documentElement.style.setProperty("--hi", fs + "rem"); };
-$("#fplus").onclick = () => setFont(0.12);
-$("#fminus").onclick = () => setFont(-0.12);
-
 $("#prev").onclick = () => go(-1);
 $("#next").onclick = () => go(1);
 function go(d) {
