@@ -232,6 +232,24 @@ async function boot() {
       /He/.test($("#letras").textContent), "He -> «Ventana, he aquí, revelar, aliento»",
       $("#letras").querySelector("li").textContent.trim());
 
+  // 14) las secciones del nav se pliegan al seleccionar y quedan separadas de «Letras»
+  const secs = () => Array.from($("#nav").querySelectorAll("details"));
+  chk(!!$("#nav .secciones") && !$("#nav .secciones").contains($("#letras")),
+      "secciones separadas del panel de letras");
+  chk(secs().length === 3, "3 secciones en el nav", secs().length);
+  chk(secs().every((d) => !d.open), "con palabra seleccionada, las secciones están plegadas",
+      secs().map((d) => (d.open ? "abierta" : "plegada")).join(","));
+  laEs.dispatchEvent(new w.Event("click", { bubbles: true }));       // segundo clic: se quita
+  await wait(60);
+  chk(secs().some((d) => d.open), "al quitar el marcador se restauran",
+      secs().map((d) => (d.open ? "abierta" : "plegada")).join(","));
+  chk(/pictográfica/.test($("#letras").textContent), "y el panel vuelve a su ayuda");
+  resh.dispatchEvent(new w.Event("click", { bubbles: true }));
+  await wait(60);
+  chk(secs().every((d) => !d.open) && $("#letras").querySelectorAll("li").length === 5,
+      "vuelve a plegarse al seleccionar y muestra las letras",
+      $("#letras").querySelectorAll("li").length);
+
   // copiar sigue trayendo el texto completo (los spans no lo rompen)
   li1.querySelector("[data-copy]").dispatchEvent(new w.Event("click", { bubbles: true }));
   chk(/En el principio creó Elohim/.test(w.__clip || ""), "Copiar incluye el español",

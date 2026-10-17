@@ -91,7 +91,9 @@ ol.verses li:target, ol.verses li.hit { background: var(--mark); }
 #marca-info { color: var(--muted); font-size: .85rem; }
 #marca-info b { color: var(--accent); }
 /* desglose por letra de la palabra seleccionada, dentro del nav y hacia abajo */
-nav.bar section.letras { border-top: 1px dashed var(--line); margin-top: 8px; padding-top: 6px; }
+nav.bar .secciones { border-bottom: 2px solid var(--line); padding-bottom: 4px; }
+nav.bar section.letras { margin-top: 10px; padding-top: 8px; border-top: 2px solid var(--line);
+  position: sticky; bottom: 0; background: var(--card); }
 nav.bar section.letras h2 { font-size: .92rem; margin: 2px 0 6px; }
 nav.bar section.letras .ayuda { color: var(--muted); font-size: .8rem; margin: 0; }
 nav.bar section.letras ol { list-style: none; margin: 0; padding: 0; }
@@ -216,7 +218,7 @@ function chapterCount(slug) { return state.books[slug] ? state.books[slug].chapt
 function renderNav() {
   const idx = state.idx, nav = $("#nav");
   const secName = { torah: "Torá", neviim: "Nevi'im", ketuvim: "Ketuvim" };
-  let html = "";
+  let html = "<div class='secciones'>";
   for (const sec of idx.sections) {
     const books = sec.books.map((s) => state.books[s]);
     const vs = books.reduce((a, b) => a + b.verses, 0);
@@ -231,9 +233,12 @@ function renderNav() {
     }
     html += "</ul></details>";
   }
+  html += "</div>";
   html += "<section class='letras' id='letras' aria-live='polite'><h2>Letras</h2>" +
     AYUDA_LETRAS + "</section>";
   nav.innerHTML = html;
+  navAbiertas = null;
+  delete nav.dataset.colapsado;
 }
 function chapters(b) {
   let out = "<div class='chaps'>";
@@ -246,6 +251,26 @@ function chapters(b) {
 
 /* ── lectura ────────────────────────────────────────────────────────── */
 const sinNiqqud = (s) => (s || "").replace(/[\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7]/g, "");
+
+/* ── secciones del nav: se pliegan al seleccionar, para dejar ver las letras ── */
+let navAbiertas = null;
+
+function colapsarSecciones() {
+  const nav = document.getElementById("nav");
+  if (!nav || nav.dataset.colapsado === "1") return;
+  navAbiertas = Array.from(nav.querySelectorAll("details")).map((d) => d.open);
+  nav.querySelectorAll("details").forEach((d) => { d.open = false; });
+  nav.dataset.colapsado = "1";
+}
+
+function restaurarSecciones() {
+  const nav = document.getElementById("nav");
+  if (!nav || nav.dataset.colapsado !== "1") return;
+  nav.querySelectorAll("details").forEach((d, i) => {
+    d.open = navAbiertas ? Boolean(navAbiertas[i]) : true;
+  });
+  delete nav.dataset.colapsado;
+}
 
 /* ── desglose por letra (lectura pictográfica) ───────────────────────── */
 const AYUDA_LETRAS = "<p class='ayuda'>Toca un componente hebreo (o su palabra española) y aquí " +
@@ -525,6 +550,7 @@ function pintarPalabra(li, el) {
     .map((w) => w.textContent).join(" ");
   const me = palabrasDe(li, ".es").filter((w) => w.classList.contains("marca"))
     .map((w) => w.textContent).join(" ");
+  colapsarSecciones();
   const hebreas = palabrasDe(li, ".he").filter((w) => w.classList.contains("marca"));
   const elegida = el.closest(".he") ? el : hebreas[0];
   pintarLetras(elegida ? elegida.textContent : "");
@@ -544,6 +570,7 @@ document.addEventListener("mouseout", (e) => {
   limpiarMarca();
   $("#marca-info").innerHTML = "";
   pintarLetras("");
+  restaurarSecciones();
 });
 document.addEventListener("click", (e) => {
   const w = e.target.closest && e.target.closest(".w");
@@ -553,6 +580,7 @@ document.addEventListener("click", (e) => {
     limpiarMarca();
     $("#marca-info").innerHTML = "";
     pintarLetras("");
+    restaurarSecciones();
     marca.el = null; marca.fijo = false;
     return;
   }
