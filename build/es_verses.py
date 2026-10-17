@@ -14,8 +14,14 @@ Formato de cada archivo (`build/es_versions/<nombre>.json`):
       "license": "CC0 1.0 Universal…",     # condiciones de uso / derechos
       "spdx": "CC0-1.0",                   # identificador de licencia
       "note": "…",                         # opcional
-      "books": {"bereshit": {"1": {"1": "texto", "2": "texto"}}}
+      "books": {"bereshit": {"1": {"1": "texto", "2": "texto"}}},
+      "glosas": {"bereshit": {"1": {"2": [[["y"], ["la"], ["tierra"]], [["era"]], …]}}}
     }
+
+`glosas` (opcional) es el mapa del autor para el selector palabra <-> traducción: por versículo,
+una lista por palabra hebrea y, dentro, una lista por COMPONENTE (en el orden de `hx`) con los
+tokens españoles que le corresponden. Un componente sin tokens (`[]`) no se une a nadie. Cuando
+existe, manda sobre el puente Strong automático.
 
 Reglas del build:
   * la capa se aplica sobre el texto de la RV1909 ya alineado al capítulo hebreo;
@@ -68,6 +74,15 @@ def load(dirpath=None):
                     texto = " ".join(str(texto).split())
                     if texto:
                         versos[(slug, int(cap), int(n))] = texto
+        glosas = {}
+        for slug, caps in (raw.get("glosas") or {}).items():
+            if slug not in slugs.BY_SLUG:
+                print("AVISO: %s: glosas de un libro desconocido: %s (se ignoran)" % (ruta, slug))
+                continue
+            for cap, vers in caps.items():
+                for n, g in vers.items():
+                    if isinstance(g, list):
+                        glosas[(slug, int(cap), int(n))] = g
         capas.append({
             "path": ruta,
             "file": nombre,
@@ -79,6 +94,7 @@ def load(dirpath=None):
             "spdx": raw.get("spdx") or "",
             "note": raw.get("note") or "",
             "verses": versos,
+            "glosas": glosas,
         })
     return capas
 

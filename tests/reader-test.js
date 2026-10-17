@@ -250,6 +250,38 @@ async function boot() {
       "vuelve a plegarse al seleccionar y muestra las letras",
       $("#letras").querySelectorAll("li").length);
 
+  // 15) Gen 1:2: el selector sigue el mapa del autor (palabra hebrea <-> traducción)
+  const li2 = $$("#verses li")[1];
+  const comp2 = (id) => li2.querySelector(".he .w[data-s='" + id + "']");
+  const tok2 = (id) => Array.from(li2.querySelectorAll(".es .w")).find((e) => e.dataset.s === id);
+  chk(!!comp2("H776") && tok2("H776") && tok2("H776").textContent === "tierra",
+      "אָרֶץ queda con «tierra»", tok2("H776") && tok2("H776").textContent);
+  chk(!!comp2("H1961") && tok2("H1961").textContent === "era", "הָיְתָה queda con «era»");
+  chk(tok2("H8414").textContent === "caos" && tok2("H922").textContent === "desolación,",
+      "תֹהוּ -> «caos» y בֹהוּ -> «desolación»");
+  chk(tok2("H8415").textContent === "abismo," && tok2("H4325").textContent === "aguas.",
+      "תְּהוֹם -> «abismo» y מַיִם -> «aguas»");
+  chk(tok2("H7307").textContent === "espíritu" && tok2("H430").textContent === "Dios",
+      "רוּחַ -> «espíritu» y אֱלֹהִים -> «Dios»");
+  chk(tok2("P/c#0").textContent === "Y" && tok2("P/d#0").textContent === "la",
+      "וְ -> «Y» y הָ -> «la»", tok2("P/c#0").textContent + "/" + tok2("P/d#0").textContent);
+  chk(tok2("H5921") && tok2("H5921").textContent === "sobre" && tok2("H6440").textContent === "superficie",
+      "עַל -> «sobre» y פְּנֵי -> «superficie»");
+
+  const marcados2 = (sel) => Array.from(li2.querySelectorAll(sel)).map((e) => e.textContent).join(" ");
+  comp2("H776").dispatchEvent(new w.Event("click", { bubbles: true }));
+  await wait(60);
+  chk(marcados2(".es .w.marca") === "tierra", "clic en אָרֶץ marca solo «tierra»",
+      marcados2(".es .w.marca"));
+  chk(marcados2(".he .w.marca") === "אָ֗רֶץ", "y el componente hebreo", marcados2(".he .w.marca"));
+  chk(/H776/.test($("#marca-info").textContent), "el pie indica el Strong", $("#marca-info").textContent.trim());
+  const parts = Array.from(li2.querySelectorAll(".es .w"));
+  const suelta = parts[parts.findIndex((e) => e.textContent === "las")];
+  suelta.dispatchEvent(new w.Event("click", { bubbles: true }));
+  await wait(40);
+  chk(li2.querySelectorAll(".w.marca").length === 0,
+      "«las» de «y las tinieblas» no se une a nadie: no marca", JSON.stringify(suelta.dataset.s));
+
   // copiar sigue trayendo el texto completo (los spans no lo rompen)
   li1.querySelector("[data-copy]").dispatchEvent(new w.Event("click", { bubbles: true }));
   chk(/En el principio creó Elohim/.test(w.__clip || ""), "Copiar incluye el español",

@@ -18,7 +18,8 @@ sys.path.insert(0, os.path.join(RAIZ, "build"))
 import build_data                                    # noqa: E402
 import curated                                       # noqa: E402
 import es_verses
-import letras                                     # noqa: E402
+import letras
+import strong_es                                     # noqa: E402
 import import_es_version as imp_es                   # noqa: E402
 import slugs                                         # noqa: E402
 import wlc                                           # noqa: E402
@@ -309,6 +310,36 @@ class TestStrongDelEspanol(unittest.TestCase):
         for pid in ("c", "d", "i", "b", "l", "k", "m", "s"):
             self.assertIn(pid, self.capa["prefijos"])
             self.assertIn("clase", self.capa["prefijos"][pid])
+
+    def test_mapa_del_autor_en_bereshit_1_2(self):
+        b = self.capa["books"]["bereshit"]["1"]["2"]
+        texto = ("Y la tierra era caos y desolación, y las tinieblas sobre el abismo, "
+                 "y el espíritu de Dios aleteaba sobre la superficie de las aguas.")
+        parejas = {(t, s) for t, s in zip(texto.split(), b["st"]) if s}
+        self.assertEqual(parejas, {
+            ("Y", "P/c#0"), ("la", "P/d#0"), ("tierra", "H776"), ("era", "H1961"),
+            ("caos", "H8414"), ("y", "P/c#3"), ("desolación,", "H922"), ("y", "P/c#4"),
+            ("tinieblas", "H2822"), ("sobre", "H5921"), ("abismo,", "H8415"),
+            ("y", "P/c#7"), ("espíritu", "H7307"), ("Dios", "H430"), ("aleteaba", "H7363"),
+            ("sobre", "H5921"), ("superficie", "H6440"), ("las", "P/d#11"), ("aguas.", "H4325"),
+        })
+        self.assertEqual(len(b["st"]), len(texto.split()), "un id por token")
+        # «el», «de», «las» de «y las tinieblas» y la faz que no aparece: sin pareja
+        for token in ("el", "de"):
+            self.assertIsNone(b["st"][texto.split().index(token)], token)
+        self.assertIsNone(b["st"][8], "«las» de «y las tinieblas» no se une a nadie")
+
+    def test_glosas_incoherentes_no_se_aplican(self):
+        analisis = [("אָ֗רֶץ", "H776", [("אָ֗רֶץ", "H776")])]
+        # glosas = [por palabra [por componente [tokens…]]]
+        self.assertIsNone(strong_es.etiquetar_por_glosas(analisis, ["tierra"], [[["no-existe"]]]),
+                          "token que no está en el texto -> no se aplica")
+        self.assertIsNone(strong_es.etiquetar_por_glosas(analisis, ["tierra"], []),
+                          "faltan palabras -> no se aplica")
+        self.assertIsNone(strong_es.etiquetar_por_glosas(analisis, ["tierra"], [[["tierra"], ["x"]]]),
+                          "componentes de más -> no se aplica")
+        et, colocados = strong_es.etiquetar_por_glosas(analisis, ["la", "tierra"], [[["tierra"]]])
+        self.assertEqual((et, colocados), ([None, "H776"], 1), "«la» queda suelta")
 
     def test_build_publica_solo_donde_hay_version(self):
         with tempfile.TemporaryDirectory() as tmp:

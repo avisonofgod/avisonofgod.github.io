@@ -250,7 +250,34 @@ def repartir_prefijos(analisis, etiquetas, tokens):
     return etiquetas
 
 
-def analizar_versiculo(cuerpo, tokens, cita, tags, slug, cap, n):
+def etiquetar_por_glosas(analisis, tokens, glosas):
+    """`st` a partir del mapa del autor (glosas), sin adivinar por posición.
+
+    `glosas` = [[tokens del componente 0], [del 1], …] por palabra hebrea, en el orden de `hx`.
+    Devuelve (etiquetas, nº de tokens colocados) o None si el mapa no cuadra con el texto servido.
+    """
+    if len(glosas) != len(analisis):
+        return None
+    etiquetas = [None] * len(tokens)
+    normas = [norm(t) for t in tokens]
+    cursor = colocados = 0
+    for i, (_txt, _strong, comps) in enumerate(analisis):
+        if len(glosas[i]) != len(comps):
+            return None
+        for k, grupo in enumerate(glosas[i]):
+            cid = comps[k][1]
+            for palabra in grupo or []:
+                pn = norm(palabra)
+                j = next((x for x in range(cursor, len(tokens)) if normas[x] == pn), -1)
+                if j < 0:
+                    return None          # el mapa no corresponde al texto actual
+                etiquetas[j] = cid
+                cursor = j + 1
+                colocados += 1
+    return etiquetas, colocados
+
+
+def analizar_versiculo(cuerpo, tokens, cita, tags, slug, cap, n, glosas=None):
     """{"hw","hs","hx","st"} de un versículo, o None si falta la fuente etiquetada."""
     analisis, _marcas = he_analisis(cuerpo)
     filas = tags.get(slug, {}).get(cap, {}).get(n)
@@ -261,6 +288,18 @@ def analizar_versiculo(cuerpo, tokens, cita, tags, slug, cap, n):
         except (TypeError, ValueError):
             filas = None
     filas = filas or []
+    if glosas:
+        # mapa del autor: manda sobre el puente Strong y no reparte partículas sueltas
+        por_glosas = etiquetar_por_glosas(analisis, tokens, glosas)
+        if por_glosas is not None:
+            etiquetas, colocados = por_glosas
+            exactos, asignados = colocados, colocados
+            return {
+                "hw": [t for t, _s, _c in analisis],
+                "hs": [s for _t, s, _c in analisis],
+                "hx": [[[ct, cid] for ct, cid in comps] for _t, _s, comps in analisis],
+                "st": etiquetas,
+            }, len(filas), exactos, asignados, True
     etiquetas, exactos, asignados = etiquetar_raices(tokens, filas)
     etiquetas = repartir_prefijos(analisis, etiquetas, tokens)
     return {
@@ -268,7 +307,7 @@ def analizar_versiculo(cuerpo, tokens, cita, tags, slug, cap, n):
         "hs": [s for _t, s, _c in analisis],
         "hx": [[[ct, cid] for ct, cid in comps] for _t, _s, comps in analisis],
         "st": etiquetas,
-    }, len(filas), exactos, asignados
+    }, len(filas), exactos, asignados, False
 
 
 def main():
@@ -282,9 +321,10 @@ def main():
     if not os.path.isdir(RV1865_DIR):
         sys.exit("falta %s (bash build/fetch_sources.sh)" % RV1865_DIR)
     capas = es_verses.load()
-    cubiertos = set()
+    cubiertos, por_glosas = set(), {}
     for capa in capas:                          # SOLO los versículos de la versión propia
         cubiertos.update(capa["verses"].keys())
+        por_glosas.update(capa.get("glosas") or {})
     textos = build_data.textos_es(capas, args.valera, args.wlc)
     tags = etiquetas_rv1865()
 
@@ -301,10 +341,12 @@ def main():
             stats["sin_es"] += 1
             continue
         tokens = txt.split()
-        bloque, n_filas, exactos, asignados = analizar_versiculo(
-            cuerpo, tokens, cita, tags, slug, cap, n)
+        bloque, n_filas, exactos, asignados, con_glosas = analizar_versiculo(
+            cuerpo, tokens, cita, tags, slug, cap, n,
+            glosas=por_glosas.get((slug, cap, n)))
         libros.setdefault(slug, {}).setdefault(cap, {})[n] = bloque
         stats["versiculos"] += 1
+        stats["con_glosas"] += 1 if con_glosas else 0
         stats["tokens"] += len(tokens)
         stats["tokens_etiquetados"] += sum(1 for e in bloque["st"] if e)
         stats["palabras"] += len(bloque["hw"])
