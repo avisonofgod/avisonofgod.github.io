@@ -344,7 +344,7 @@ async function boot() {
 
   // 18) Bereshit 1:5: nombres puestos a la luz y a las tinieblas
   const li5 = $$("#verses li")[4];
-  const T5 = "Y llamó אלהים la luz día, y las tinieblas llamó noche, fue anochecer y fue " +
+  const T5 = "Y llamó אלהים la luz día, y las tinieblas llamó noche, y fue anochecer y fue " +
     "amanecer, día primero.";
   const esTexto5 = li5.querySelector(".es").textContent.replace(/\s+v1\.0\s*$/, "").trim();
   chk(esTexto5 === T5, "texto final de 1:5", esTexto5);
@@ -356,9 +356,11 @@ async function boot() {
   chk(t5("H259#11").textContent === "primero.", "אֶחָד -> «primero»");
   chk(t5("H7121#0").textContent === "llamó" && t5("H7121#6").textContent === "llamó",
       "las dos formas de קָרָא con id propio");
-  chk(li5.querySelectorAll(".es .w").length === 18 &&
+  chk(li5.querySelectorAll(".es .w").length === 19 &&
       Array.from(li5.querySelectorAll(".es .w")).every((e) => e.dataset.s),
-      "1:5 sin palabras sueltas: 18 de 18 con pareja");
+      "1:5 sin palabras sueltas: 19 de 19 con pareja");
+  chk(t5("P/c#8").textContent === "y" && t5("H1961#8").textContent === "fue",
+      "la «y» de וַיְהִי queda con su וַ (P/c#8)");
 
   // copiar sigue trayendo el texto completo (los spans no lo rompen)
   li1.querySelector("[data-copy]").dispatchEvent(new w.Event("click", { bubbles: true }));

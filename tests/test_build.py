@@ -159,7 +159,7 @@ class TestVersionesES(unittest.TestCase):
         self.assertEqual(chaps[1][3]["es"],
                          "Y vio אלהים la luz buena, y separó אלהים entre la luz y entre las tinieblas.")
         self.assertEqual(chaps[1][4]["es"],
-                         "Y llamó אלהים la luz día, y las tinieblas llamó noche, fue anochecer "
+                         "Y llamó אלהים la luz día, y las tinieblas llamó noche, y fue anochecer "
                          "y fue amanecer, día primero.")
         self.assertNotIn("es_version", chaps[1][5])
         primera = chaps[1][1]["es"]
@@ -357,14 +357,15 @@ class TestStrongDelEspanol(unittest.TestCase):
 
     def test_mapa_del_autor_en_bereshit_1_5(self):
         b = self.capa["books"]["bereshit"]["1"]["5"]
-        texto = ("Y llamó אלהים la luz día, y las tinieblas llamó noche, fue anochecer y fue "
+        texto = ("Y llamó אלהים la luz día, y las tinieblas llamó noche, y fue anochecer y fue "
                  "amanecer, día primero.")
         pares = list(zip(texto.split(), b["st"]))
         self.assertEqual(pares, [
             ("Y", "P/c#0"), ("llamó", "H7121#0"), ("אלהים", "H430#1"), ("la", "P/l#3"),
             ("luz", "H216#3"), ("día,", "H3117#4"), ("y", "P/c#5"), ("las", "P/l#5"),
             ("tinieblas", "H2822#5"), ("llamó", "H7121#6"), ("noche,", "H3915#7"),
-            ("fue", "H1961#8"), ("anochecer", "H6153#8"), ("y", "P/c#9"), ("fue", "H1961#9"),
+            ("y", "P/c#8"), ("fue", "H1961#8"), ("anochecer", "H6153#8"), ("y", "P/c#9"),
+            ("fue", "H1961#9"),
             ("amanecer,", "H1242#9"), ("día", "H3117#10"), ("primero.", "H259#11"),
         ], "todo casa, sin palabras sueltas")
         self.assertEqual(b["hw"][2], "׀", "el paseq se conserva como palabra sin id")
