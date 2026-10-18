@@ -381,8 +381,8 @@ async function boot() {
 
   // 20) Bereshit 1:7: separación de las aguas de debajo y de sobre la expansión
   const li7 = $$("#verses li")[6];
-  const T7 = "Y hizo אלהים la expansión, y separó entre las aguas que debajo de la expansión " +
-    "y entre las aguas que encima de la expansión. Y fue así.";
+  const T7 = "Y hizo אלהים la expansión, y separó entre las aguas que desde debajo la " +
+    "expansión y entre las aguas que desde sobre la expansión. Y fue así.";
   const esTexto7 = li7.querySelector(".es").textContent.replace(/\s+v1\.0\s*$/, "").trim();
   chk(esTexto7 === T7, "texto final de 1:7", esTexto7);
   const t7 = (id) => Array.from(li7.querySelectorAll(".es .w")).find((e) => e.dataset.s === id);
@@ -391,10 +391,10 @@ async function boot() {
   chk(t7("H996#4").textContent === "entre" && t7("H996#9").textContent === "entre",
       "los dos בֵּין con id propio");
   chk(t7("P/m#7") !== t7("P/m#12"), "los dos prefijos מ quedan separados");
-  chk(t7("H8478#7").textContent === "debajo" && t7("P/m#7").textContent === "de",
-      "מִתַּחַת -> «debajo» + «de» (el prefijo מ va después en español)");
-  chk(t7("H5921#12").textContent === "encima" && t7("P/m#12").textContent === "de",
-      "מֵעַל -> «encima» + «de»");
+  chk(t7("P/m#7").textContent === "desde" && t7("H8478#7").textContent === "debajo",
+      "מִתַּחַת -> «desde debajo»");
+  chk(t7("P/m#12").textContent === "desde" && t7("H5921#12").textContent === "sobre",
+      "מֵעַל -> «desde sobre»");
   chk(t7("H3651#14").textContent === "así." && t7("H1961#14").textContent === "fue" &&
       t7("P/c#14").textContent === "Y", "וַיְהִי־כֵן -> «Y fue así»");
   chk(li7.querySelectorAll(".es .w").length === 27 &&

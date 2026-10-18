@@ -167,8 +167,8 @@ class TestVersionesES(unittest.TestCase):
                          "Y dijo אלהים exista expansión en medio las aguas, y sea separador "
                          "entre aguas de las aguas.")
         self.assertEqual(chaps[1][6]["es"],
-                         "Y hizo אלהים la expansión, y separó entre las aguas que debajo de la "
-                         "expansión y entre las aguas que encima de la expansión. Y fue así.")
+                         "Y hizo אלהים la expansión, y separó entre las aguas que desde debajo "
+                         "la expansión y entre las aguas que desde sobre la expansión. Y fue así.")
         self.assertNotIn("es_version", chaps[1][7])
         primera = chaps[1][1]["es"]
         es_verses.apply(chaps, "bereshit")          # idempotente
@@ -367,15 +367,15 @@ class TestStrongDelEspanol(unittest.TestCase):
 
     def test_mapa_del_autor_en_bereshit_1_7(self):
         b = self.capa["books"]["bereshit"]["1"]["7"]
-        texto = ("Y hizo אלהים la expansión, y separó entre las aguas que debajo de la "
-                 "expansión y entre las aguas que encima de la expansión. Y fue así.")
+        texto = ("Y hizo אלהים la expansión, y separó entre las aguas que desde debajo la "
+                 "expansión y entre las aguas que desde sobre la expansión. Y fue así.")
         self.assertEqual(list(zip(texto.split(), b["st"])), [
             ("Y", "P/c#0"), ("hizo", "H6213#0"), ("אלהים", "H430#1"), ("la", "P/d#2"),
             ("expansión,", "H7549#2"), ("y", "P/c#3"), ("separó", "H914#3"),
             ("entre", "H996#4"), ("las", "P/d#5"), ("aguas", "H4325#5"), ("que", "H834#6"),
-            ("debajo", "H8478#7"), ("de", "P/m#7"), ("la", "P/l#8"), ("expansión", "H7549#8"),
+            ("desde", "P/m#7"), ("debajo", "H8478#7"), ("la", "P/l#8"), ("expansión", "H7549#8"),
             ("y", "P/c#9"), ("entre", "H996#9"), ("las", "P/d#10"), ("aguas", "H4325#10"),
-            ("que", "H834#11"), ("encima", "H5921#12"), ("de", "P/m#12"), ("la", "P/l#13"),
+            ("que", "H834#11"), ("desde", "P/m#12"), ("sobre", "H5921#12"), ("la", "P/l#13"),
             ("expansión.", "H7549#13"), ("Y", "P/c#14"), ("fue", "H1961#14"),
             ("así.", "H3651#14"),
         ], "27 palabras, ninguna suelta")
