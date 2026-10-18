@@ -76,7 +76,7 @@ async function boot() {
   chk(/En el principio creó אלהים/i.test(rows[0].querySelector(".es").textContent), "y su español (RV1909 + enmienda)");
   chk((rows[0].querySelector(".es small.ver") || {}).textContent === "v1.0",
       "versículo marcado con la versión", (rows[0].querySelector(".es small.ver") || {}).textContent);
-  chk(/3 en v1\.0/.test($("#meta").textContent), "meta cuenta los versículos de la versión", $("#meta").textContent);
+  chk(/4 en v1\.0/.test($("#meta").textContent), "meta cuenta los versículos de la versión", $("#meta").textContent);
 
   // 4) enlace permanente a un versículo
   w.location.hash = "#/tehilim/23/1";
@@ -198,8 +198,8 @@ async function boot() {
   chk(li1.querySelectorAll(".w.marca").length === 0,
       "«el» no se une a ningún componente: no marca", String(elArt.dataset.s));
 
-  // versículo ajeno a la versión propia (1:4): sin componentes ni marcador
-  const liAjeno = $$("#verses li")[3];
+  // versículo ajeno a la versión propia (1:5): sin componentes ni marcador
+  const liAjeno = $$("#verses li")[4];
   chk(liAjeno.querySelectorAll(".he .w").length === 0 && liAjeno.querySelectorAll(".es .w").length === 0,
       "versículo sin versión propia: sin componentes",
       liAjeno.querySelectorAll(".w").length);
@@ -307,6 +307,31 @@ async function boot() {
   await wait(50);
   chk(marcados3(".es .w.marca") === "existió", "clic en וַיְהִי marca solo «existió»",
       marcados3(".es .w.marca"));
+
+  // 17) Bereshit 1:4: אֶת y el 2.º בֵּין también en hebreo/directos
+  const li4 = $$("#verses li")[3];
+  const T4 = "Y vio אלהים את la luz buena, y separó אלהים entre la luz y entre las tinieblas.";
+  const esTexto4 = li4.querySelector(".es").textContent.replace(/\s+v1\.0\s*$/, "").trim();
+  chk(esTexto4 === T4, "texto final de 1:4", esTexto4);
+  const t4 = (id) => Array.from(li4.querySelectorAll(".es .w")).find((e) => e.dataset.s === id);
+  chk(t4("H853#2").textContent === "את", "אֶת queda en hebreo (H853#2)", t4("H853#2").textContent);
+  chk(t4("H2896#3").textContent === "buena," && t4("H3588#3") === undefined,
+      "כִּי no se traduce: solo טוֹב -> «buena»");
+  chk(t4("H996#6").textContent === "entre" && t4("H996#8").textContent === "entre",
+      "los dos בֵּין con id propio (H996#6 / H996#8)");
+  chk(t4("H7200#0").textContent === "vio" && t4("H914#4").textContent === "separó",
+      "וַיַּרְא -> «vio» y וַיַּבְדֵּל -> «separó»");
+  chk(li4.querySelectorAll(".es .w").length === 17 &&
+      Array.from(li4.querySelectorAll(".es .w")).every((e) => e.dataset.s),
+      "1:4 sin palabras sueltas: 17 de 17 con pareja");
+  li4.querySelector(".he .w[data-s='H2822#9']").dispatchEvent(new w.Event("click", { bubbles: true }));
+  await wait(50);
+  const marca4 = () => Array.from(li4.querySelectorAll(".es .w.marca"))
+    .map((e) => e.textContent).join(" ");
+  chk(marca4() === "tinieblas.", "clic en חֹשֶׁךְ marca «tinieblas.»", marca4());
+  li4.querySelector(".he .w[data-s='P/d#9']").dispatchEvent(new w.Event("click", { bubbles: true }));
+  await wait(50);
+  chk(marca4() === "las", "clic en el artículo הַ marca «las»", marca4());
 
   // copiar sigue trayendo el texto completo (los spans no lo rompen)
   li1.querySelector("[data-copy]").dispatchEvent(new w.Event("click", { bubbles: true }));
