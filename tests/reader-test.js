@@ -76,7 +76,7 @@ async function boot() {
   chk(/En el principio creó אלהים/i.test(rows[0].querySelector(".es").textContent), "y su español (RV1909 + enmienda)");
   chk((rows[0].querySelector(".es small.ver") || {}).textContent === "v1.0",
       "versículo marcado con la versión", (rows[0].querySelector(".es small.ver") || {}).textContent);
-  chk(/6 en v1\.0/.test($("#meta").textContent), "meta cuenta los versículos de la versión", $("#meta").textContent);
+  chk(/7 en v1\.0/.test($("#meta").textContent), "meta cuenta los versículos de la versión", $("#meta").textContent);
 
   // 4) enlace permanente a un versículo
   w.location.hash = "#/tehilim/23/1";
@@ -198,8 +198,8 @@ async function boot() {
   chk(li1.querySelectorAll(".w.marca").length === 0,
       "«el» no se une a ningún componente: no marca", String(elArt.dataset.s));
 
-  // versículo ajeno a la versión propia (1:7): sin componentes ni marcador
-  const liAjeno = $$("#verses li")[6];
+  // versículo ajeno a la versión propia (1:8): sin componentes ni marcador
+  const liAjeno = $$("#verses li")[7];
   chk(liAjeno.querySelectorAll(".he .w").length === 0 && liAjeno.querySelectorAll(".es .w").length === 0,
       "versículo sin versión propia: sin componentes",
       liAjeno.querySelectorAll(".w").length);
@@ -378,6 +378,25 @@ async function boot() {
   chk(li6.querySelectorAll(".es .w").length === 17 &&
       Array.from(li6.querySelectorAll(".es .w")).every((e) => e.dataset.s),
       "1:6 sin palabras sueltas: 17 de 17 con pareja");
+
+  // 20) Bereshit 1:7: separación de las aguas de debajo y de sobre la expansión
+  const li7 = $$("#verses li")[6];
+  const T7 = "Y hizo אלהים la expansión, y separó entre las aguas que debajo la expansión y " +
+    "entre las aguas que sobre la expansión, y fue así.";
+  const esTexto7 = li7.querySelector(".es").textContent.replace(/\s+v1\.0\s*$/, "").trim();
+  chk(esTexto7 === T7, "texto final de 1:7", esTexto7);
+  const t7 = (id) => Array.from(li7.querySelectorAll(".es .w")).find((e) => e.dataset.s === id);
+  chk(t7("H6213#0").textContent === "hizo" && t7("H914#3").textContent === "separó",
+      "וַיַּעַשׂ -> «hizo» y וַיַּבְדֵּל -> «separó»");
+  chk(t7("H996#4").textContent === "entre" && t7("H996#9").textContent === "entre",
+      "los dos בֵּין con id propio");
+  chk(t7("H8478#7").textContent === "debajo" && t7("H5921#12").textContent === "sobre",
+      "מִתַּחַת -> «debajo» y מֵעַל -> «sobre»");
+  chk(t7("H3651#14").textContent === "así." && t7("H1961#14").textContent === "fue",
+      "וַיְהִי־כֵן -> «y fue así»");
+  chk(li7.querySelectorAll(".es .w").length === 25 &&
+      Array.from(li7.querySelectorAll(".es .w")).every((e) => e.dataset.s),
+      "1:7 sin palabras sueltas: 25 de 25 con pareja");
 
   // copiar sigue trayendo el texto completo (los spans no lo rompen)
   li1.querySelector("[data-copy]").dispatchEvent(new w.Event("click", { bubbles: true }));
