@@ -76,7 +76,7 @@ async function boot() {
   chk(/En el principio creó אלהים/i.test(rows[0].querySelector(".es").textContent), "y su español (RV1909 + enmienda)");
   chk((rows[0].querySelector(".es small.ver") || {}).textContent === "v1.0",
       "versículo marcado con la versión", (rows[0].querySelector(".es small.ver") || {}).textContent);
-  chk(/5 en v1\.0/.test($("#meta").textContent), "meta cuenta los versículos de la versión", $("#meta").textContent);
+  chk(/6 en v1\.0/.test($("#meta").textContent), "meta cuenta los versículos de la versión", $("#meta").textContent);
 
   // 4) enlace permanente a un versículo
   w.location.hash = "#/tehilim/23/1";
@@ -198,8 +198,8 @@ async function boot() {
   chk(li1.querySelectorAll(".w.marca").length === 0,
       "«el» no se une a ningún componente: no marca", String(elArt.dataset.s));
 
-  // versículo ajeno a la versión propia (1:6): sin componentes ni marcador
-  const liAjeno = $$("#verses li")[5];
+  // versículo ajeno a la versión propia (1:7): sin componentes ni marcador
+  const liAjeno = $$("#verses li")[6];
   chk(liAjeno.querySelectorAll(".he .w").length === 0 && liAjeno.querySelectorAll(".es .w").length === 0,
       "versículo sin versión propia: sin componentes",
       liAjeno.querySelectorAll(".w").length);
@@ -361,6 +361,23 @@ async function boot() {
       "1:5 sin palabras sueltas: 19 de 19 con pareja");
   chk(t5("P/c#8").textContent === "y" && t5("H1961#8").textContent === "fue",
       "la «y» de וַיְהִי queda con su וַ (P/c#8)");
+
+  // 19) Bereshit 1:6: la expansión y el separador entre las aguas
+  const li6 = $$("#verses li")[5];
+  const T6 = "Y dijo אלהים exista expansión en medio las aguas, y sea separador entre aguas " +
+    "de las aguas.";
+  const esTexto6 = li6.querySelector(".es").textContent.replace(/\s+v1\.0\s*$/, "").trim();
+  chk(esTexto6 === T6, "texto final de 1:6", esTexto6);
+  const t6 = (id) => Array.from(li6.querySelectorAll(".es .w")).find((e) => e.dataset.s === id);
+  chk(t6("H7549#3").textContent === "expansión" && t6("H914#7").textContent === "separador",
+      "רָקִיעַ -> «expansión» y מַבְדִּיל -> «separador»");
+  chk(t6("P/b#4").textContent === "en" && t6("H8432#4").textContent === "medio",
+      "בְּתוֹךְ -> «en» + «medio»");
+  chk(t6("H996#8").textContent === "entre" && t6("P/l#10").textContent === "de",
+      "בֵּין -> «entre» y לָ -> «de»");
+  chk(li6.querySelectorAll(".es .w").length === 17 &&
+      Array.from(li6.querySelectorAll(".es .w")).every((e) => e.dataset.s),
+      "1:6 sin palabras sueltas: 17 de 17 con pareja");
 
   // copiar sigue trayendo el texto completo (los spans no lo rompen)
   li1.querySelector("[data-copy]").dispatchEvent(new w.Event("click", { bubbles: true }));

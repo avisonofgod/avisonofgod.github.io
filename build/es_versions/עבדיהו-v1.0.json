@@ -13,7 +13,8 @@
     "2": "Y la tierra era caos y desolación, y las tinieblas sobre el abismo, y el espíritu de אלהים aleteaba sobre la superficie de las aguas.",
     "3": "Y dijo אלהים, exista luz y existió luz.",
     "4": "Y vio אלהים la luz buena, y separó אלהים entre la luz y entre las tinieblas.",
-    "5": "Y llamó אלהים la luz día, y las tinieblas llamó noche, y fue anochecer y fue amanecer, día primero."
+    "5": "Y llamó אלהים la luz día, y las tinieblas llamó noche, y fue anochecer y fue amanecer, día primero.",
+    "6": "Y dijo אלהים exista expansión en medio las aguas, y sea separador entre aguas de las aguas."
    }
   }
  },
@@ -293,6 +294,79 @@
      [
       [
        "primero"
+      ]
+     ]
+    ],
+    "6": [
+     [
+      [
+       "y"
+      ],
+      [
+       "dijo"
+      ]
+     ],
+     [
+      [
+       "אלהים"
+      ]
+     ],
+     [
+      [
+       "exista"
+      ]
+     ],
+     [
+      [
+       "expansión"
+      ]
+     ],
+     [
+      [
+       "en"
+      ],
+      [
+       "medio"
+      ]
+     ],
+     [
+      [
+       "las"
+      ],
+      [
+       "aguas"
+      ]
+     ],
+     [
+      [
+       "y"
+      ],
+      [
+       "sea"
+      ]
+     ],
+     [
+      [
+       "separador"
+      ]
+     ],
+     [
+      [
+       "entre"
+      ]
+     ],
+     [
+      [
+       "aguas"
+      ]
+     ],
+     [
+      [
+       "de"
+      ],
+      [
+       "las",
+       "aguas"
       ]
      ]
     ]
