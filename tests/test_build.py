@@ -139,7 +139,7 @@ class TestVersionesES(unittest.TestCase):
         self.assertIn("1.0", nombres)
         capa = [c for c in capas if c["version"] == "1.0"][0]
         self.assertEqual(capa["verses"][("bereshit", 1, 1)],
-                         "En el principio creó Elohim los cielos y la tierra.")
+                         "En el principio creó אלהים los cielos y la tierra.")
         self.assertEqual(capa["author"], "עבדיהו")
         self.assertTrue(capa["spdx"], "la capa declara licencia SPDX")
         self.assertIn("CC0", capa["license"])
@@ -153,7 +153,7 @@ class TestVersionesES(unittest.TestCase):
         self.assertEqual(es_verses.apply(chaps, "bereshit"), 3)
         self.assertEqual(chaps[1][0]["es_version"], "v1.0")
         self.assertEqual(chaps[1][1]["es_version"], "v1.0")
-        self.assertEqual(chaps[1][2]["es"], "Y dijo Dios: exista la luz y existió la luz.")
+        self.assertEqual(chaps[1][2]["es"], "Y dijo אלהים, exista luz y existió luz.")
         self.assertNotIn("es_version", chaps[1][3])
         primera = chaps[1][1]["es"]
         es_verses.apply(chaps, "bereshit")          # idempotente
@@ -190,10 +190,10 @@ class TestVersionesES(unittest.TestCase):
 
     def test_importador_parsea_referencias(self):
         versos, malas = imp_es.parsear_versos(
-            "Génesis 1:1\tEn el principio creó Elohim\n"
+            "Génesis 1:1\tEn el principio creó אלהים\n"
             "Bereshit 1:2 Pero la tierra\n   desierta y vacía\n"
             "basura sin referencia\n")
-        self.assertEqual(versos[("bereshit", 1, 1)], "En el principio creó Elohim")
+        self.assertEqual(versos[("bereshit", 1, 1)], "En el principio creó אלהים")
         self.assertEqual(versos[("bereshit", 1, 2)],
                          "Pero la tierra desierta y vacía basura sin referencia",
                          "las líneas sin referencia se acumulan al versículo anterior")
@@ -232,7 +232,7 @@ class TestVersionesES(unittest.TestCase):
             self.assertEqual(d["verses"][0]["es_version"], "v1.0")
             self.assertEqual(d["verses"][1]["es_version"], "v1.0")
             self.assertEqual(d["verses"][2]["es_version"], "v1.0")
-            self.assertEqual(d["verses"][2]["es"], "Y dijo Dios: exista la luz y existió la luz.")
+            self.assertEqual(d["verses"][2]["es"], "Y dijo אלהים, exista luz y existió luz.")
             self.assertNotIn("es_version", d["verses"][3], "el resto sigue siendo RV1909")
 
 
@@ -302,10 +302,10 @@ class TestStrongDelEspanol(unittest.TestCase):
         self.assertEqual(b["hx"][0], [["בְּ", "P/b#0"], ["רֵאשִׁ֖ית", "H7225#0"]],
                          "prefijo y raíz separados, con id por aparición")
         self.assertEqual(b["hs"][0], "H7225", "hs es la raíz")
-        es = "En el principio creó Elohim los cielos y la tierra.".split()
+        es = "En el principio creó אלהים los cielos y la tierra.".split()
         parejas = {t: s for t, s in zip(es, b["st"]) if s}
         self.assertEqual(parejas, {"En": "P/b#0", "principio": "H7225#0", "creó": "H1254#1",
-                                   "Elohim": "H430#2", "los": "P/d#4", "cielos": "H8064#4",
+                                   "אלהים": "H430#2", "los": "P/d#4", "cielos": "H8064#4",
                                    "la": "P/d#6", "tierra.": "H776#6"},
                          "«el» y «y» no se unen a nadie")
 
@@ -317,13 +317,13 @@ class TestStrongDelEspanol(unittest.TestCase):
     def test_mapa_del_autor_en_bereshit_1_2(self):
         b = self.capa["books"]["bereshit"]["1"]["2"]
         texto = ("Y la tierra era caos y desolación, y las tinieblas sobre el abismo, "
-                 "y el espíritu de Dios aleteaba sobre la superficie de las aguas.")
+                 "y el espíritu de אלהים aleteaba sobre la superficie de las aguas.")
         parejas = {(t, s) for t, s in zip(texto.split(), b["st"]) if s}
         self.assertEqual(parejas, {
             ("Y", "P/c#0"), ("la", "P/d#0"), ("tierra", "H776#0"), ("era", "H1961#1"),
             ("caos", "H8414#2"), ("y", "P/c#3"), ("desolación,", "H922#3"), ("y", "P/c#4"),
             ("tinieblas", "H2822#4"), ("sobre", "H5921#5"), ("abismo,", "H8415#6"),
-            ("y", "P/c#7"), ("espíritu", "H7307#7"), ("Dios", "H430#8"), ("aleteaba", "H7363#9"),
+            ("y", "P/c#7"), ("espíritu", "H7307#7"), ("אלהים", "H430#8"), ("aleteaba", "H7363#9"),
             ("sobre", "H5921#10"), ("superficie", "H6440#10"), ("las", "P/d#11"),
             ("aguas.", "H4325#11"),
         }, "una aparición de la raíz no marca la otra (H5921#5 vs H5921#10)")
@@ -335,12 +335,13 @@ class TestStrongDelEspanol(unittest.TestCase):
 
     def test_mapa_del_autor_en_bereshit_1_3(self):
         b = self.capa["books"]["bereshit"]["1"]["3"]
-        texto = "Y dijo Dios: exista la luz y existió la luz."
+        texto = "Y dijo אלהים, exista luz y existió luz."
         parejas = {(t, s) for t, s in zip(texto.split(), b["st"]) if s}
         self.assertEqual(parejas, {
-            ("Y", "P/c#0"), ("dijo", "H559#0"), ("Dios:", "H430#1"), ("exista", "H1961#2"),
+            ("Y", "P/c#0"), ("dijo", "H559#0"), ("אלהים,", "H430#1"), ("exista", "H1961#2"),
             ("luz", "H216#3"), ("y", "P/c#4"), ("existió", "H1961#4"), ("luz.", "H216#4"),
         })
+        self.assertEqual(len(parejas), len(texto.split()), "sin palabras sueltas: todo casa")
         self.assertEqual(b["hw"][0], "וַיֹּ֥אמֶר")
         self.assertEqual(b["hx"][4], [["וַֽ", "P/c#4"], ["יְהִי־", "H1961#4"], ["אֽוֹר׃", "H216#4"]],
                          "el maqqef deja tres componentes en la última palabra")

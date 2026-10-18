@@ -73,7 +73,7 @@ async function boot() {
   let rows = $$("#verses li");
   chk(rows.length === 31, "Génesis 1 trae 31 versículos", rows.length);
   chk(letters(rows[0].querySelector(".he").textContent).includes("בראשית ברא אלהים"), "primer versículo con hebreo");
-  chk(/En el principio creó Elohim/i.test(rows[0].querySelector(".es").textContent), "y su español (RV1909 + enmienda)");
+  chk(/En el principio creó אלהים/i.test(rows[0].querySelector(".es").textContent), "y su español (RV1909 + enmienda)");
   chk((rows[0].querySelector(".es small.ver") || {}).textContent === "v1.0",
       "versículo marcado con la versión", (rows[0].querySelector(".es small.ver") || {}).textContent);
   chk(/3 en v1\.0/.test($("#meta").textContent), "meta cuenta los versículos de la versión", $("#meta").textContent);
@@ -261,8 +261,8 @@ async function boot() {
       "תֹּהוּ -> «caos» y בֹּהוּ -> «desolación»");
   chk(tok2("H8415#6").textContent === "abismo," && tok2("H4325#11").textContent === "aguas.",
       "תְּהוֹם -> «abismo» y מַיִם -> «aguas»");
-  chk(tok2("H7307#7").textContent === "espíritu" && tok2("H430#8").textContent === "Dios",
-      "רוּחַ -> «espíritu» y אֱלֹהִים -> «Dios»");
+  chk(tok2("H7307#7").textContent === "espíritu" && tok2("H430#8").textContent === "אלהים",
+      "רוּחַ -> «espíritu» y אֱלֹהִים -> «אלהים» (sin traducir)");
   chk(tok2("P/c#0").textContent === "Y" && tok2("P/d#0").textContent === "la",
       "וְ -> «Y» y הָ -> «la»", tok2("P/c#0").textContent + "/" + tok2("P/d#0").textContent);
   chk(tok2("H5921#5").textContent === "sobre" && tok2("H6440#10").textContent === "superficie",
@@ -288,11 +288,13 @@ async function boot() {
   // 16) Bereshit 1:3: «Y dijo Dios: exista la luz y existió la luz.»
   const li3v = $$("#verses li")[2];
   const esTexto3 = li3v.querySelector(".es").textContent.replace(/\s+v1\.0\s*$/, "").trim();
-  chk(esTexto3 === "Y dijo Dios: exista la luz y existió la luz.",
+  chk(esTexto3 === "Y dijo אלהים, exista luz y existió luz.",
       "texto final de 1:3", esTexto3);
   const t3 = (id) => Array.from(li3v.querySelectorAll(".es .w")).find((e) => e.dataset.s === id);
-  chk(t3("H559#0").textContent === "dijo" && t3("H430#1").textContent === "Dios:",
-      "וַיֹּאמֶר -> «dijo» y אֱלֹהִים -> «Dios»");
+  chk(t3("H559#0").textContent === "dijo" && t3("H430#1").textContent === "אלהים,",
+      "וַיֹּאמֶר -> «dijo» y אֱלֹהִים -> «אלהים» (sin traducir)");
+  chk(Array.from(li3v.querySelectorAll(".es .w")).filter((e) => !e.dataset.s).length === 0,
+      "1:3 sin palabras sueltas: todas tienen pareja");
   chk(t3("H1961#2").textContent === "exista" && t3("H1961#4").textContent === "existió",
       "יְהִי -> «exista» y וַיְהִי -> «existió» (cada aparición aparte)");
   chk(t3("H216#3").textContent === "luz" && t3("H216#4").textContent === "luz.",
@@ -308,7 +310,7 @@ async function boot() {
 
   // copiar sigue trayendo el texto completo (los spans no lo rompen)
   li1.querySelector("[data-copy]").dispatchEvent(new w.Event("click", { bubbles: true }));
-  chk(/En el principio creó Elohim/.test(w.__clip || ""), "Copiar incluye el español",
+  chk(/En el principio creó אלהים/.test(w.__clip || ""), "Copiar incluye el español",
       String(w.__clip).split("\n")[2]);
 
   console.log("\n== RESUMEN: " + ok + " OK / " + fail + " FALLA ==");
