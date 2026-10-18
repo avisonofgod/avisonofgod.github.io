@@ -15,7 +15,8 @@
     "4": "Y vio אלהים la luz buena, y separó אלהים entre la luz y entre las tinieblas.",
     "5": "Y llamó אלהים la luz día, y las tinieblas llamó noche, y fue anochecer y fue amanecer, día primero.",
     "6": "Y dijo אלהים exista expansión en medio las aguas, y sea separador entre aguas de las aguas.",
-    "7": "Y hizo אלהים la expansión, y separó entre las aguas que desde debajo la expansión y entre las aguas que desde sobre la expansión. Y fue así."
+    "7": "Y hizo אלהים la expansión, y separó entre las aguas que desde debajo la expansión y entre las aguas que desde sobre la expansión. Y fue así.",
+    "8": "Y llamó אלהים la expansión cielos, y fue anochecer y fue amanecer, día segundo."
    }
   }
  },
@@ -476,6 +477,66 @@
       ],
       "H3651#14": [
        "así."
+      ]
+     }
+    ],
+    "8": [
+     {
+      "P/c#0": [
+       "y"
+      ],
+      "H7121#0": [
+       "llamó"
+      ]
+     },
+     {
+      "H430#1": [
+       "אלהים"
+      ]
+     },
+     {
+      "P/l#2": [
+       "la"
+      ],
+      "H7549#2": [
+       "expansión"
+      ]
+     },
+     {
+      "H8064#3": [
+       "cielos,"
+      ]
+     },
+     {
+      "P/c#4": [
+       "y"
+      ],
+      "H1961#4": [
+       "fue"
+      ],
+      "H6153#4": [
+       "anochecer"
+      ]
+     },
+     {
+      "P/c#5": [
+       "y"
+      ],
+      "H1961#5": [
+       "fue"
+      ],
+      "H1242#5": [
+       "amanecer,"
+      ]
+     },
+     {
+      "H3117#6": [
+       "día"
+      ]
+     },
+     {
+      "H8145#7": [
+       "segundo."
       ]
      }
     ]

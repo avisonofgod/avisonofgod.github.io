@@ -76,7 +76,7 @@ async function boot() {
   chk(/En el principio creó אלהים/i.test(rows[0].querySelector(".es").textContent), "y su español (RV1909 + enmienda)");
   chk((rows[0].querySelector(".es small.ver") || {}).textContent === "v1.0",
       "versículo marcado con la versión", (rows[0].querySelector(".es small.ver") || {}).textContent);
-  chk(/7 en v1\.0/.test($("#meta").textContent), "meta cuenta los versículos de la versión", $("#meta").textContent);
+  chk(/8 en v1\.0/.test($("#meta").textContent), "meta cuenta los versículos de la versión", $("#meta").textContent);
 
   // 4) enlace permanente a un versículo
   w.location.hash = "#/tehilim/23/1";
@@ -198,8 +198,8 @@ async function boot() {
   chk(li1.querySelectorAll(".w.marca").length === 0,
       "«el» no se une a ningún componente: no marca", String(elArt.dataset.s));
 
-  // versículo ajeno a la versión propia (1:8): sin componentes ni marcador
-  const liAjeno = $$("#verses li")[7];
+  // versículo ajeno a la versión propia (1:9): sin componentes ni marcador
+  const liAjeno = $$("#verses li")[8];
   chk(liAjeno.querySelectorAll(".he .w").length === 0 && liAjeno.querySelectorAll(".es .w").length === 0,
       "versículo sin versión propia: sin componentes",
       liAjeno.querySelectorAll(".w").length);
@@ -400,6 +400,20 @@ async function boot() {
   chk(li7.querySelectorAll(".es .w").length === 27 &&
       Array.from(li7.querySelectorAll(".es .w")).every((e) => e.dataset.s),
       "1:7 sin palabras sueltas: 27 de 27 con pareja");
+
+  // 21) Bereshit 1:8: la expansión se llama cielos
+  const li8 = $$("#verses li")[7];
+  const T8 = "Y llamó אלהים la expansión cielos, y fue anochecer y fue amanecer, día segundo.";
+  const esTexto8 = li8.querySelector(".es").textContent.replace(/\s+v1\.0\s*$/, "").trim();
+  chk(esTexto8 === T8, "texto final de 1:8", esTexto8);
+  const t8 = (id) => Array.from(li8.querySelectorAll(".es .w")).find((e) => e.dataset.s === id);
+  chk(t8("H8064#3").textContent === "cielos," && t8("H7549#2").textContent === "expansión",
+      "שָׁמָיִם -> «cielos» y רָקִיעַ -> «expansión»");
+  chk(t8("H8145#7").textContent === "segundo." && t8("H3117#6").textContent === "día",
+      "יוֹם שֵׁנִי -> «día segundo»");
+  chk(li8.querySelectorAll(".es .w").length === 14 &&
+      Array.from(li8.querySelectorAll(".es .w")).every((e) => e.dataset.s),
+      "1:8 sin palabras sueltas: 14 de 14 con pareja");
 
   // copiar sigue trayendo el texto completo (los spans no lo rompen)
   li1.querySelector("[data-copy]").dispatchEvent(new w.Event("click", { bubbles: true }));
