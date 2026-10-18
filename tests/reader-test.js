@@ -381,8 +381,8 @@ async function boot() {
 
   // 20) Bereshit 1:7: separación de las aguas de debajo y de sobre la expansión
   const li7 = $$("#verses li")[6];
-  const T7 = "Y hizo אלהים la expansión, y separó entre las aguas que debajo la expansión y " +
-    "entre las aguas que sobre la expansión, y fue así.";
+  const T7 = "Y hizo אלהים la expansión, y separó entre las aguas que debajo de la expansión " +
+    "y entre las aguas que encima de la expansión. Y fue así.";
   const esTexto7 = li7.querySelector(".es").textContent.replace(/\s+v1\.0\s*$/, "").trim();
   chk(esTexto7 === T7, "texto final de 1:7", esTexto7);
   const t7 = (id) => Array.from(li7.querySelectorAll(".es .w")).find((e) => e.dataset.s === id);
@@ -390,13 +390,16 @@ async function boot() {
       "וַיַּעַשׂ -> «hizo» y וַיַּבְדֵּל -> «separó»");
   chk(t7("H996#4").textContent === "entre" && t7("H996#9").textContent === "entre",
       "los dos בֵּין con id propio");
-  chk(t7("H8478#7").textContent === "debajo" && t7("H5921#12").textContent === "sobre",
-      "מִתַּחַת -> «debajo» y מֵעַל -> «sobre»");
-  chk(t7("H3651#14").textContent === "así." && t7("H1961#14").textContent === "fue",
-      "וַיְהִי־כֵן -> «y fue así»");
-  chk(li7.querySelectorAll(".es .w").length === 25 &&
+  chk(t7("P/m#7") !== t7("P/m#12"), "los dos prefijos מ quedan separados");
+  chk(t7("H8478#7").textContent === "debajo" && t7("P/m#7").textContent === "de",
+      "מִתַּחַת -> «debajo» + «de» (el prefijo מ va después en español)");
+  chk(t7("H5921#12").textContent === "encima" && t7("P/m#12").textContent === "de",
+      "מֵעַל -> «encima» + «de»");
+  chk(t7("H3651#14").textContent === "así." && t7("H1961#14").textContent === "fue" &&
+      t7("P/c#14").textContent === "Y", "וַיְהִי־כֵן -> «Y fue así»");
+  chk(li7.querySelectorAll(".es .w").length === 27 &&
       Array.from(li7.querySelectorAll(".es .w")).every((e) => e.dataset.s),
-      "1:7 sin palabras sueltas: 25 de 25 con pareja");
+      "1:7 sin palabras sueltas: 27 de 27 con pareja");
 
   // copiar sigue trayendo el texto completo (los spans no lo rompen)
   li1.querySelector("[data-copy]").dispatchEvent(new w.Event("click", { bubbles: true }));

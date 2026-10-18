@@ -167,8 +167,8 @@ class TestVersionesES(unittest.TestCase):
                          "Y dijo אלהים exista expansión en medio las aguas, y sea separador "
                          "entre aguas de las aguas.")
         self.assertEqual(chaps[1][6]["es"],
-                         "Y hizo אלהים la expansión, y separó entre las aguas que debajo la "
-                         "expansión y entre las aguas que sobre la expansión, y fue así.")
+                         "Y hizo אלהים la expansión, y separó entre las aguas que debajo de la "
+                         "expansión y entre las aguas que encima de la expansión. Y fue así.")
         self.assertNotIn("es_version", chaps[1][7])
         primera = chaps[1][1]["es"]
         es_verses.apply(chaps, "bereshit")          # idempotente
@@ -367,18 +367,18 @@ class TestStrongDelEspanol(unittest.TestCase):
 
     def test_mapa_del_autor_en_bereshit_1_7(self):
         b = self.capa["books"]["bereshit"]["1"]["7"]
-        texto = ("Y hizo אלהים la expansión, y separó entre las aguas que debajo la expansión y "
-                 "entre las aguas que sobre la expansión, y fue así.")
+        texto = ("Y hizo אלהים la expansión, y separó entre las aguas que debajo de la "
+                 "expansión y entre las aguas que encima de la expansión. Y fue así.")
         self.assertEqual(list(zip(texto.split(), b["st"])), [
             ("Y", "P/c#0"), ("hizo", "H6213#0"), ("אלהים", "H430#1"), ("la", "P/d#2"),
             ("expansión,", "H7549#2"), ("y", "P/c#3"), ("separó", "H914#3"),
             ("entre", "H996#4"), ("las", "P/d#5"), ("aguas", "H4325#5"), ("que", "H834#6"),
-            ("debajo", "H8478#7"), ("la", "P/l#8"), ("expansión", "H7549#8"),
+            ("debajo", "H8478#7"), ("de", "P/m#7"), ("la", "P/l#8"), ("expansión", "H7549#8"),
             ("y", "P/c#9"), ("entre", "H996#9"), ("las", "P/d#10"), ("aguas", "H4325#10"),
-            ("que", "H834#11"), ("sobre", "H5921#12"), ("la", "P/l#13"),
-            ("expansión,", "H7549#13"), ("y", "P/c#14"), ("fue", "H1961#14"),
+            ("que", "H834#11"), ("encima", "H5921#12"), ("de", "P/m#12"), ("la", "P/l#13"),
+            ("expansión.", "H7549#13"), ("Y", "P/c#14"), ("fue", "H1961#14"),
             ("así.", "H3651#14"),
-        ], "25 palabras, ninguna suelta")
+        ], "27 palabras, ninguna suelta")
         self.assertEqual(b["hx"][2][0], ["אֶת־", "H853#2"], "אֶת sigue en el hebreo, sin token")
 
     def test_mapa_del_autor_en_bereshit_1_6(self):
@@ -430,15 +430,21 @@ class TestStrongDelEspanol(unittest.TestCase):
                          "כִּי conserva su id aunque el autor no lo traduzca")
 
     def test_glosas_incoherentes_no_se_aplican(self):
+        # glosas = una lista por palabra; cada palabra es {id: [tokens]}
         analisis = [("אָ֗רֶץ", "H776", [("אָ֗רֶץ", "H776")])]
-        # glosas = [por palabra [por componente [tokens…]]]
-        self.assertIsNone(strong_es.etiquetar_por_glosas(analisis, ["tierra"], [[["no-existe"]]]),
-                          "token que no está en el texto -> no se aplica")
+        self.assertIsNone(
+            strong_es.etiquetar_por_glosas(analisis, ["tierra"], [{"H776": ["no-existe"]}]),
+            "token que no está en el texto -> no se aplica")
         self.assertIsNone(strong_es.etiquetar_por_glosas(analisis, ["tierra"], []),
                           "faltan palabras -> no se aplica")
-        self.assertIsNone(strong_es.etiquetar_por_glosas(analisis, ["tierra"], [[["tierra"], ["x"]]]),
-                          "componentes de más -> no se aplica")
-        et, colocados = strong_es.etiquetar_por_glosas(analisis, ["la", "tierra"], [[["tierra"]]])
+        self.assertIsNone(
+            strong_es.etiquetar_por_glosas(analisis, ["tierra"], [{"H999": ["tierra"]}]),
+            "id ajeno a la palabra -> no se aplica")
+        self.assertIsNone(
+            strong_es.etiquetar_por_glosas(analisis, ["tierra"], [[["tierra"]]]),
+            "formato viejo (listas) -> no se aplica")
+        et, colocados = strong_es.etiquetar_por_glosas(analisis, ["la", "tierra"],
+                                                       [{"H776": ["tierra"]}])
         self.assertEqual((et, colocados), ([None, "H776"], 1), "«la» queda suelta")
 
     def test_build_publica_solo_donde_hay_version(self):

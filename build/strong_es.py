@@ -254,7 +254,10 @@ def etiquetar_automatico(analisis, tokens, filas):
 def etiquetar_por_glosas(analisis, tokens, glosas):
     """`st` a partir del mapa del autor (glosas), sin adivinar por posición.
 
-    `glosas` = [[tokens del componente 0], [del 1], …] por palabra hebrea, en el orden de `hx`.
+    `glosas` = una lista por palabra hebrea, y cada palabra es {id del componente: [tokens]}.
+    Se da por id (no por orden) para poder traducir en orden español aunque el hebreo vaya al
+    revés: en `מִתַּחַת` los tokens «debajo» (H8478#7) y «de» (P/m#7) pueden ir en ese orden.
+    Los tokens de cada palabra se buscan en el texto en el orden del mapa.
     Devuelve (etiquetas, nº de tokens colocados) o None si el mapa no cuadra con el texto servido.
     """
     if len(glosas) != len(analisis):
@@ -263,10 +266,13 @@ def etiquetar_por_glosas(analisis, tokens, glosas):
     normas = [norm(t) for t in tokens]
     cursor = colocados = 0
     for i, (_txt, _strong, comps) in enumerate(analisis):
-        if len(glosas[i]) != len(comps):
+        mapa = glosas[i]
+        if not isinstance(mapa, dict):
             return None
-        for k, grupo in enumerate(glosas[i]):
-            cid = comps[k][1]
+        propios = {cid for _t, cid in comps if cid}
+        if set(mapa) - propios:                # id que no pertenece a esta palabra
+            return None
+        for cid, grupo in mapa.items():
             for palabra in grupo or []:
                 pn = norm(palabra)
                 j = next((x for x in range(cursor, len(tokens)) if normas[x] == pn), -1)
