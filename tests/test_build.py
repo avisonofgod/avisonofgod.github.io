@@ -148,11 +148,13 @@ class TestVersionesES(unittest.TestCase):
     def test_apply_marca_es_version(self):
         chaps = {1: [{"n": 1, "es": "EN el principio crió Dios los cielos y la tierra."},
                      {"n": 2, "es": "Y la tierra estaba desordenada y vacía."},
-                     {"n": 3, "es": "Y dijo Dios: Sea la luz."}]}
-        self.assertEqual(es_verses.apply(chaps, "bereshit"), 2)
+                     {"n": 3, "es": "Y dijo Dios: Sea la luz."},
+                     {"n": 4, "es": "Y vio Dios que la luz era buena."}]}
+        self.assertEqual(es_verses.apply(chaps, "bereshit"), 3)
         self.assertEqual(chaps[1][0]["es_version"], "v1.0")
         self.assertEqual(chaps[1][1]["es_version"], "v1.0")
-        self.assertNotIn("es_version", chaps[1][2])
+        self.assertEqual(chaps[1][2]["es"], "Y dijo Dios: exista la luz y existió la luz.")
+        self.assertNotIn("es_version", chaps[1][3])
         primera = chaps[1][1]["es"]
         es_verses.apply(chaps, "bereshit")          # idempotente
         self.assertEqual(chaps[1][1]["es"], primera)
@@ -162,10 +164,10 @@ class TestVersionesES(unittest.TestCase):
 
     def test_payload_declara_y_aplica(self):
         capas = es_verses.load()
-        payload = {c["version"]: c for c in es_verses.payload({"1.0": 2}, capas)}
+        payload = {c["version"]: c for c in es_verses.payload({"1.0": 3}, capas)}
         k = payload["1.0"]
-        self.assertEqual(k["verses_declared"], 2)
-        self.assertEqual(k["verses_applied"], 2)
+        self.assertEqual(k["verses_declared"], 3)
+        self.assertEqual(k["verses_applied"], 3)
         self.assertTrue(k["file"].startswith("build/es_versions/"))
         self.assertEqual(k["short"], "v1.0")
         self.assertEqual(k["author"], "עבדיהו")
@@ -229,8 +231,9 @@ class TestVersionesES(unittest.TestCase):
             d = json.load(open(os.path.join(tmp, "es", "bereshit", "1.json")))
             self.assertEqual(d["verses"][0]["es_version"], "v1.0")
             self.assertEqual(d["verses"][1]["es_version"], "v1.0")
-            self.assertNotIn("es_version", d["verses"][2])
-            self.assertEqual(d["verses"][2]["es"], "Y dijo Dios: Sea la luz: y fué la luz.")
+            self.assertEqual(d["verses"][2]["es_version"], "v1.0")
+            self.assertEqual(d["verses"][2]["es"], "Y dijo Dios: exista la luz y existió la luz.")
+            self.assertNotIn("es_version", d["verses"][3], "el resto sigue siendo RV1909")
 
 
 class TestLetrasHebreas(unittest.TestCase):
@@ -296,14 +299,14 @@ class TestStrongDelEspanol(unittest.TestCase):
     def test_componentes_de_bereshit_1_1(self):
         b = self.capa["books"]["bereshit"]["1"]["1"]
         self.assertEqual(b["hw"][0], "בְּרֵאשִׁ֖ית")
-        self.assertEqual(b["hx"][0], [["בְּ", "P/b#0"], ["רֵאשִׁ֖ית", "H7225"]],
-                         "prefijo y raíz separados")
+        self.assertEqual(b["hx"][0], [["בְּ", "P/b#0"], ["רֵאשִׁ֖ית", "H7225#0"]],
+                         "prefijo y raíz separados, con id por aparición")
         self.assertEqual(b["hs"][0], "H7225", "hs es la raíz")
         es = "En el principio creó Elohim los cielos y la tierra.".split()
         parejas = {t: s for t, s in zip(es, b["st"]) if s}
-        self.assertEqual(parejas, {"En": "P/b#0", "principio": "H7225", "creó": "H1254",
-                                   "Elohim": "H430", "los": "P/d#4", "cielos": "H8064",
-                                   "la": "P/d#6", "tierra.": "H776"},
+        self.assertEqual(parejas, {"En": "P/b#0", "principio": "H7225#0", "creó": "H1254#1",
+                                   "Elohim": "H430#2", "los": "P/d#4", "cielos": "H8064#4",
+                                   "la": "P/d#6", "tierra.": "H776#6"},
                          "«el» y «y» no se unen a nadie")
 
     def test_particulas_declaradas(self):
@@ -317,17 +320,30 @@ class TestStrongDelEspanol(unittest.TestCase):
                  "y el espíritu de Dios aleteaba sobre la superficie de las aguas.")
         parejas = {(t, s) for t, s in zip(texto.split(), b["st"]) if s}
         self.assertEqual(parejas, {
-            ("Y", "P/c#0"), ("la", "P/d#0"), ("tierra", "H776"), ("era", "H1961"),
-            ("caos", "H8414"), ("y", "P/c#3"), ("desolación,", "H922"), ("y", "P/c#4"),
-            ("tinieblas", "H2822"), ("sobre", "H5921"), ("abismo,", "H8415"),
-            ("y", "P/c#7"), ("espíritu", "H7307"), ("Dios", "H430"), ("aleteaba", "H7363"),
-            ("sobre", "H5921"), ("superficie", "H6440"), ("las", "P/d#11"), ("aguas.", "H4325"),
-        })
+            ("Y", "P/c#0"), ("la", "P/d#0"), ("tierra", "H776#0"), ("era", "H1961#1"),
+            ("caos", "H8414#2"), ("y", "P/c#3"), ("desolación,", "H922#3"), ("y", "P/c#4"),
+            ("tinieblas", "H2822#4"), ("sobre", "H5921#5"), ("abismo,", "H8415#6"),
+            ("y", "P/c#7"), ("espíritu", "H7307#7"), ("Dios", "H430#8"), ("aleteaba", "H7363#9"),
+            ("sobre", "H5921#10"), ("superficie", "H6440#10"), ("las", "P/d#11"),
+            ("aguas.", "H4325#11"),
+        }, "una aparición de la raíz no marca la otra (H5921#5 vs H5921#10)")
         self.assertEqual(len(b["st"]), len(texto.split()), "un id por token")
         # «el», «de», «las» de «y las tinieblas» y la faz que no aparece: sin pareja
         for token in ("el", "de"):
             self.assertIsNone(b["st"][texto.split().index(token)], token)
         self.assertIsNone(b["st"][8], "«las» de «y las tinieblas» no se une a nadie")
+
+    def test_mapa_del_autor_en_bereshit_1_3(self):
+        b = self.capa["books"]["bereshit"]["1"]["3"]
+        texto = "Y dijo Dios: exista la luz y existió la luz."
+        parejas = {(t, s) for t, s in zip(texto.split(), b["st"]) if s}
+        self.assertEqual(parejas, {
+            ("Y", "P/c#0"), ("dijo", "H559#0"), ("Dios:", "H430#1"), ("exista", "H1961#2"),
+            ("luz", "H216#3"), ("y", "P/c#4"), ("existió", "H1961#4"), ("luz.", "H216#4"),
+        })
+        self.assertEqual(b["hw"][0], "וַיֹּ֥אמֶר")
+        self.assertEqual(b["hx"][4], [["וַֽ", "P/c#4"], ["יְהִי־", "H1961#4"], ["אֽוֹר׃", "H216#4"]],
+                         "el maqqef deja tres componentes en la última palabra")
 
     def test_glosas_incoherentes_no_se_aplican(self):
         analisis = [("אָ֗רֶץ", "H776", [("אָ֗רֶץ", "H776")])]
@@ -357,11 +373,11 @@ class TestStrongDelEspanol(unittest.TestCase):
                 for _txt, cid in comps:
                     if cid and cid.startswith("P/"):
                         self.assertIn(cid[2], self.capa["prefijos"], "código de prefijo documentado")
-            self.assertNotIn("hw", d["verses"][2], "versículo sin versión propia: sin etiquetas")
+            self.assertNotIn("hw", d["verses"][3], "versículo sin versión propia: sin etiquetas")
             e = json.load(open(os.path.join(tmp, "es", "bereshit", "1.json")))
             self.assertEqual(e["verses"][0]["st"],
                              self.capa["books"]["bereshit"]["1"]["1"]["st"])
-            self.assertNotIn("st", e["verses"][2], "versículo ajeno: sin etiquetas")
+            self.assertNotIn("st", e["verses"][3], "versículo ajeno: sin etiquetas")
 
 
 if __name__ == "__main__":

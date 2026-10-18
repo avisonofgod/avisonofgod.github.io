@@ -22,7 +22,7 @@ import sys
 OUT = sys.argv[1] if len(sys.argv) > 1 else "v1"
 REQUIRED_SECTIONS = {"torah": 5, "neviim": 21, "ketuvim": 13}
 HEBREW_OK = re.compile(r"^[\u0590-\u05c7\u05d0-\u05ea\u05f3\u05f4 ]+$")
-STRONG_OK = re.compile(r"^H?\d+(\+H?\d+)*$")
+STRONG_OK = re.compile(r"^H?\d+(#\d+)?(\+H?\d+(#\d+)?)*$")
 
 fail = []
 ok = 0

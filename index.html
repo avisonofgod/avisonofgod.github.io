@@ -533,7 +533,9 @@ const PREFIJOS = {
   b: "ב en, con (preposición)", l: "ל a, para", k: "כ como", m: "מ de, desde",
   s: "ש que (relativo)",
 };
-const glosaId = (id) => (id.slice(0, 2) === "P/" ? (PREFIJOS[id.slice(2, 3)] || "prefijo") : id);
+const sinSufijo = (id) => (id || "").replace(/#\d+$/, "");
+const glosaId = (id) => (id.slice(0, 2) === "P/"
+  ? (PREFIJOS[id.slice(2, 3)] || "prefijo") : sinSufijo(id));
 
 /* Se marca EXACTAMENTE lo que comparte id: el componente hebreo y sus palabras
    españolas (o al revés). Las partículas sin id no se unen a nada: no se marcan. */
@@ -556,8 +558,8 @@ function pintarPalabra(li, el) {
   pintarLetras(elegida ? elegida.textContent : "");
 
   const glosa = glosaId(id);
-  $("#marca-info").innerHTML = "<b>" + esc(id) + "</b>" + (glosa === id ? "" : " · " + esc(glosa)) +
-    " · " + esc(mh) + " = " + esc(me);
+  $("#marca-info").innerHTML = "<b>" + esc(sinSufijo(id)) + "</b>" +
+    (glosa === sinSufijo(id) ? "" : " · " + esc(glosa)) + " · " + esc(mh) + " = " + esc(me);
 }
 
 document.addEventListener("mouseover", (e) => {

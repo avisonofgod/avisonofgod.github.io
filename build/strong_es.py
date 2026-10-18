@@ -136,11 +136,11 @@ def he_analisis(chapter_body):
         comps = []
         for i in grupo:
             comps.extend(partir_palabra(crudas[i][0], crudas[i][2]))
-        # id único por aparición: "P/d#4" (artículo de la palabra 4 del versículo), para que
-        # tocar «los» marque ESE artículo y no todos los de su clase.
+        # id único por aparición: "P/d#4" (artículo) y "H776#4" (raíz de la palabra 4). Así
+        # tocar «los» marca ESE artículo y tocar «sobre» (dos veces en el versículo) marca solo
+        # el suyo.
         comps = [(unicodedata.normalize("NFC", t),
-                  ("%s#%d" % (cid, len(salida)) if cid and cid.startswith("P/") else cid))
-                 for t, cid in comps]
+                  ("%s#%d" % (cid, len(salida)) if cid else cid)) for t, cid in comps]
         unida = "+".join(dict.fromkeys(fuertes)) or None
         salida.append((unicodedata.normalize("NFC", texto), unida, comps))
     return salida, "".join(marcas)
@@ -212,42 +212,43 @@ def etiquetar_raices(tokens, filas):
     return etiquetas, exactos, asignados
 
 
-def repartir_prefijos(analisis, etiquetas, tokens):
-    """Coloca cada prefijo en un token español libre DELANTE de su raíz, de su misma clase.
+def etiquetar_automatico(analisis, tokens, filas):
+    """Puente Strong (versículos sin mapa del autor): raíces por posición y prefijos por clase.
 
-    El token que sobra no se une a nadie: se queda sin id (partícula suelta).
+    Las etiquetas se convierten a ids por aparición ("H776#4"), igual que `hx`, para que el
+    lector no marque dos veces la misma raíz cuando aparece repetida en el versículo.
     """
-    idx_raiz = {}
-    for k, (_txt, strong, _comps) in enumerate(analisis):
-        if not strong:
+    planas, exactos, asignados = etiquetar_raices(tokens, filas)
+    cola = {}
+    for _txt, _strong, comps in analisis:
+        for _ct, cid in comps:
+            if cid and cid.startswith("H"):
+                cola.setdefault(cid.split("#")[0], []).append(cid)
+    etiquetas = []
+    for e in planas:
+        if e and e.startswith("H") and cola.get(e):
+            etiquetas.append(cola[e].pop(0))
+        else:
+            etiquetas.append(e)
+    for _txt, _strong, comps in analisis:          # prefijos: delante de su raíz, por clase
+        raices = [cid for _ct, cid in comps if cid and cid.startswith("H")]
+        if not raices:
             continue
-        for j, e in enumerate(etiquetas):
-            if e == strong and j not in idx_raiz.values():
-                idx_raiz[k] = j
-                break
-    for k, (_txt, _strong, comps) in enumerate(analisis):
-        prefijos = [c for c in comps if c[1] and c[1].startswith("P/")]
-        if not prefijos or k not in idx_raiz:
+        pos = next((j for j, e in enumerate(etiquetas) if e in raices), None)
+        if pos is None:
             continue
-        fin = idx_raiz[k]
-        inicio = -1
-        for j in range(k - 1, -1, -1):
-            if j in idx_raiz and idx_raiz[j] < fin:
-                inicio = idx_raiz[j]
-                break
-        huecos = [j for j in range(inicio + 1, fin) if etiquetas[j] is None]
-        for _txt, pid in prefijos:
-            clase = PREFIJOS.get(pid.split("#")[0][2:], {}).get("clase", [])
-            elegido = None
-            for j in huecos:
-                if norm(tokens[j]) in clase:
-                    elegido = j
-                    break
+        inicio = max((j for j in range(pos) if etiquetas[j] is not None), default=-1)
+        huecos = [j for j in range(inicio + 1, pos) if etiquetas[j] is None]
+        for _ct, cid in comps:
+            if not (cid and cid.startswith("P/")):
+                continue
+            clase = PREFIJOS.get(cid.split("#")[0][2:], {}).get("clase", [])
+            elegido = next((j for j in huecos if norm(tokens[j]) in clase), None)
             if elegido is None:
                 continue
-            etiquetas[elegido] = pid
+            etiquetas[elegido] = cid
             huecos.remove(elegido)
-    return etiquetas
+    return etiquetas, exactos, asignados
 
 
 def etiquetar_por_glosas(analisis, tokens, glosas):
@@ -300,8 +301,7 @@ def analizar_versiculo(cuerpo, tokens, cita, tags, slug, cap, n, glosas=None):
                 "hx": [[[ct, cid] for ct, cid in comps] for _t, _s, comps in analisis],
                 "st": etiquetas,
             }, len(filas), exactos, asignados, True
-    etiquetas, exactos, asignados = etiquetar_raices(tokens, filas)
-    etiquetas = repartir_prefijos(analisis, etiquetas, tokens)
+    etiquetas, exactos, asignados = etiquetar_automatico(analisis, tokens, filas)
     return {
         "hw": [t for t, _s, _c in analisis],
         "hs": [s for _t, s, _c in analisis],

@@ -76,7 +76,7 @@ async function boot() {
   chk(/En el principio creó Elohim/i.test(rows[0].querySelector(".es").textContent), "y su español (RV1909 + enmienda)");
   chk((rows[0].querySelector(".es small.ver") || {}).textContent === "v1.0",
       "versículo marcado con la versión", (rows[0].querySelector(".es small.ver") || {}).textContent);
-  chk(/2 en v1\.0/.test($("#meta").textContent), "meta cuenta los versículos de la versión", $("#meta").textContent);
+  chk(/3 en v1\.0/.test($("#meta").textContent), "meta cuenta los versículos de la versión", $("#meta").textContent);
 
   // 4) enlace permanente a un versículo
   w.location.hash = "#/tehilim/23/1";
@@ -159,7 +159,7 @@ async function boot() {
   const bet = heComp.find((c) => c.textContent === "בְּ");
   const resh = heComp.find((c) => c.textContent === "רֵאשִׁ֖ית");
   chk(!!bet && bet.dataset.s === "P/b#0", "el prefijo בְּ trae su id", bet && bet.dataset.s);
-  chk(!!resh && resh.dataset.s === "H7225", "la raíz רֵאשִׁית trae su Strong",
+  chk(!!resh && resh.dataset.s === "H7225#0", "la raíz רֵאשִׁית trae su Strong",
       resh && resh.dataset.s);
   const marcados = (sel) => Array.from(li1.querySelectorAll(sel)).map((e) => e.textContent).join(" ");
 
@@ -198,11 +198,11 @@ async function boot() {
   chk(li1.querySelectorAll(".w.marca").length === 0,
       "«el» no se une a ningún componente: no marca", String(elArt.dataset.s));
 
-  // versículo ajeno a la versión propia: sin componentes ni marcador
-  const li3 = $$("#verses li")[2];
-  chk(li3.querySelectorAll(".he .w").length === 0 && li3.querySelectorAll(".es .w").length === 0,
+  // versículo ajeno a la versión propia (1:4): sin componentes ni marcador
+  const liAjeno = $$("#verses li")[3];
+  chk(liAjeno.querySelectorAll(".he .w").length === 0 && liAjeno.querySelectorAll(".es .w").length === 0,
       "versículo sin versión propia: sin componentes",
-      li3.querySelectorAll(".w").length);
+      liAjeno.querySelectorAll(".w").length);
 
   // 13) desglose por letra de la palabra seleccionada (panel dentro del nav)
   chk(!!$("#letras") && !!$("#nav").querySelector("section.letras"),
@@ -254,22 +254,25 @@ async function boot() {
   const li2 = $$("#verses li")[1];
   const comp2 = (id) => li2.querySelector(".he .w[data-s='" + id + "']");
   const tok2 = (id) => Array.from(li2.querySelectorAll(".es .w")).find((e) => e.dataset.s === id);
-  chk(!!comp2("H776") && tok2("H776") && tok2("H776").textContent === "tierra",
-      "אָרֶץ queda con «tierra»", tok2("H776") && tok2("H776").textContent);
-  chk(!!comp2("H1961") && tok2("H1961").textContent === "era", "הָיְתָה queda con «era»");
-  chk(tok2("H8414").textContent === "caos" && tok2("H922").textContent === "desolación,",
-      "תֹהוּ -> «caos» y בֹהוּ -> «desolación»");
-  chk(tok2("H8415").textContent === "abismo," && tok2("H4325").textContent === "aguas.",
+  chk(!!comp2("H776#0") && tok2("H776#0") && tok2("H776#0").textContent === "tierra",
+      "אָרֶץ queda con «tierra»", tok2("H776#0") && tok2("H776#0").textContent);
+  chk(!!comp2("H1961#1") && tok2("H1961#1").textContent === "era", "הָיְתָה queda con «era»");
+  chk(tok2("H8414#2").textContent === "caos" && tok2("H922#3").textContent === "desolación,",
+      "תֹּהוּ -> «caos» y בֹּהוּ -> «desolación»");
+  chk(tok2("H8415#6").textContent === "abismo," && tok2("H4325#11").textContent === "aguas.",
       "תְּהוֹם -> «abismo» y מַיִם -> «aguas»");
-  chk(tok2("H7307").textContent === "espíritu" && tok2("H430").textContent === "Dios",
+  chk(tok2("H7307#7").textContent === "espíritu" && tok2("H430#8").textContent === "Dios",
       "רוּחַ -> «espíritu» y אֱלֹהִים -> «Dios»");
   chk(tok2("P/c#0").textContent === "Y" && tok2("P/d#0").textContent === "la",
       "וְ -> «Y» y הָ -> «la»", tok2("P/c#0").textContent + "/" + tok2("P/d#0").textContent);
-  chk(tok2("H5921") && tok2("H5921").textContent === "sobre" && tok2("H6440").textContent === "superficie",
-      "עַל -> «sobre» y פְּנֵי -> «superficie»");
+  chk(tok2("H5921#5").textContent === "sobre" && tok2("H6440#10").textContent === "superficie",
+      "עַל -> «sobre» (1.º) y פְּנֵי -> «superficie» (2.º)");
+  chk(tok2("H5921#10").textContent === "sobre" && tok2("H5921#5") !== tok2("H5921#10"),
+      "las dos apariciones de עַל quedan separadas");
 
   const marcados2 = (sel) => Array.from(li2.querySelectorAll(sel)).map((e) => e.textContent).join(" ");
-  comp2("H776").dispatchEvent(new w.Event("click", { bubbles: true }));
+  const marcados3 = (sel) => Array.from(li3v.querySelectorAll(sel)).map((e) => e.textContent).join(" ");
+  comp2("H776#0").dispatchEvent(new w.Event("click", { bubbles: true }));
   await wait(60);
   chk(marcados2(".es .w.marca") === "tierra", "clic en אָרֶץ marca solo «tierra»",
       marcados2(".es .w.marca"));
@@ -281,6 +284,27 @@ async function boot() {
   await wait(40);
   chk(li2.querySelectorAll(".w.marca").length === 0,
       "«las» de «y las tinieblas» no se une a nadie: no marca", JSON.stringify(suelta.dataset.s));
+
+  // 16) Bereshit 1:3: «Y dijo Dios: exista la luz y existió la luz.»
+  const li3v = $$("#verses li")[2];
+  const esTexto3 = li3v.querySelector(".es").textContent.replace(/\s+v1\.0\s*$/, "").trim();
+  chk(esTexto3 === "Y dijo Dios: exista la luz y existió la luz.",
+      "texto final de 1:3", esTexto3);
+  const t3 = (id) => Array.from(li3v.querySelectorAll(".es .w")).find((e) => e.dataset.s === id);
+  chk(t3("H559#0").textContent === "dijo" && t3("H430#1").textContent === "Dios:",
+      "וַיֹּאמֶר -> «dijo» y אֱלֹהִים -> «Dios»");
+  chk(t3("H1961#2").textContent === "exista" && t3("H1961#4").textContent === "existió",
+      "יְהִי -> «exista» y וַיְהִי -> «existió» (cada aparición aparte)");
+  chk(t3("H216#3").textContent === "luz" && t3("H216#4").textContent === "luz.",
+      "אוֹר -> «luz» en sus dos apariciones");
+  li3v.querySelector(".he .w[data-s='H1961#2']").dispatchEvent(new w.Event("click", { bubbles: true }));
+  await wait(50);
+  chk(marcados3(".es .w.marca") === "exista", "clic en יְהִי marca solo «exista»",
+      marcados3(".es .w.marca"));
+  li3v.querySelector(".he .w[data-s='H1961#4']").dispatchEvent(new w.Event("click", { bubbles: true }));
+  await wait(50);
+  chk(marcados3(".es .w.marca") === "existió", "clic en וַיְהִי marca solo «existió»",
+      marcados3(".es .w.marca"));
 
   // copiar sigue trayendo el texto completo (los spans no lo rompen)
   li1.querySelector("[data-copy]").dispatchEvent(new w.Event("click", { bubbles: true }));
