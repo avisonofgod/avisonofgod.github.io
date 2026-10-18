@@ -103,6 +103,8 @@ nav.bar section.letras li:first-child { border-top: 0; }
 nav.bar section.letras .heb { font-size: 1.5rem; line-height: 1.1; direction: rtl; }
 nav.bar section.letras li b { min-width: 4.4rem; }
 nav.bar section.letras li span:last-child { color: var(--muted); font-size: .82rem; }
+nav.bar section.letras .nota { margin: 8px 0 0; padding: 6px 8px; border-left: 3px solid var(--accent);
+  background: var(--accent-soft); color: var(--text); font-size: .8rem; line-height: 1.35; }
 .es small.ver { color: var(--accent); font-size: .75em; white-space: nowrap; }
 .es { margin-top: 2px; }
 body.no-niqqud .he { /* el niqqud se quita al mostrar he_plain */ }
@@ -291,7 +293,10 @@ function letrasDe(palabra) {
     .filter((l) => TABLA.letters[l]);
 }
 
-function pintarLetras(palabra) {
+const NOTA_AT = "Alef-tav indica al lector que la palabra que viene inmediatamente después es " +
+  "la que recibe la acción directa del verbo.";
+
+function pintarLetras(palabra, conNota) {
   const caja = document.getElementById("letras");
   if (!caja) return;
   const letras = letrasDe(palabra);
@@ -304,7 +309,8 @@ function pintarLetras(palabra) {
       const d = TABLA.letters[l];
       return "<li><span class='heb'>" + esc(l) + "</span><b>" + esc(d.nombre) + "</b><span>" +
         esc(d.pictograma) + "</span></li>";
-    }).join("") + "</ol>";
+    }).join("") + "</ol>" +
+    (conNota ? "<p class='nota'>" + esc(NOTA_AT) + "</p>" : "");
 }
 
 /* Pieza tocable: lleva el índice de su palabra y su id (Strong de raíz o P/<letra>). */
@@ -555,7 +561,13 @@ function pintarPalabra(li, el) {
   colapsarSecciones();
   const hebreas = palabrasDe(li, ".he").filter((w) => w.classList.contains("marca"));
   const elegida = el.closest(".he") ? el : hebreas[0];
-  pintarLetras(elegida ? elegida.textContent : "");
+  let marcaAT = false;                       // ¿la palabra lleva el marcador alef-tav (H853)?
+  if (elegida && elegida.closest(".he")) {
+    const k = elegida.dataset.i;
+    marcaAT = [...elegida.closest(".he").querySelectorAll(".w[data-i='" + k + "']")]
+      .some((w) => (w.dataset.s || "").indexOf("H853") === 0);
+  }
+  pintarLetras(elegida ? elegida.textContent : "", marcaAT);
 
   const glosa = glosaId(id);
   $("#marca-info").innerHTML = "<b>" + esc(sinSufijo(id)) + "</b>" +

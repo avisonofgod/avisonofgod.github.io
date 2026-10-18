@@ -156,7 +156,7 @@ class TestVersionesES(unittest.TestCase):
         self.assertEqual(chaps[1][1]["es_version"], "v1.0")
         self.assertEqual(chaps[1][2]["es"], "Y dijo אלהים, exista luz y existió luz.")
         self.assertEqual(chaps[1][3]["es"],
-                         "Y vio אלהים את la luz buena, y separó אלהים entre la luz y entre las tinieblas.")
+                         "Y vio אלהים la luz buena, y separó אלהים entre la luz y entre las tinieblas.")
         self.assertNotIn("es_version", chaps[1][4])
         primera = chaps[1][1]["es"]
         es_verses.apply(chaps, "bereshit")          # idempotente
@@ -352,16 +352,17 @@ class TestStrongDelEspanol(unittest.TestCase):
 
     def test_mapa_del_autor_en_bereshit_1_4(self):
         b = self.capa["books"]["bereshit"]["1"]["4"]
-        texto = ("Y vio אלהים את la luz buena, y separó אלהים entre la luz y entre las "
+        texto = ("Y vio אלהים la luz buena, y separó אלהים entre la luz y entre las "
                  "tinieblas.")
         parejas = {(t, s) for t, s in zip(texto.split(), b["st"]) if s}
         self.assertEqual(parejas, {
-            ("Y", "P/c#0"), ("vio", "H7200#0"), ("אלהים", "H430#1"), ("את", "H853#2"),
+            ("Y", "P/c#0"), ("vio", "H7200#0"), ("אלהים", "H430#1"),
             ("la", "P/d#2"), ("luz", "H216#2"), ("buena,", "H2896#3"), ("y", "P/c#4"),
             ("separó", "H914#4"), ("אלהים", "H430#5"), ("entre", "H996#6"), ("la", "P/d#7"),
             ("luz", "H216#7"), ("y", "P/c#8"), ("entre", "H996#8"), ("las", "P/d#9"),
             ("tinieblas.", "H2822#9"),
-        }, "todo casa: אֶת y el segundo בֵּין también")
+        }, "אֶת no se muestra; el segundo בֵּין sí casa")
+        self.assertNotIn("את", texto.split(), "el marcador alef-tav no aparece en la traducción")
         self.assertEqual(len(parejas), len(texto.split()), "sin palabras sueltas")
         self.assertEqual(b["hw"][2], "אֶת־הָא֖וֹר", "maqqef: אֶת + artículo + אוֹר")
         self.assertEqual(b["hx"][3], [["כִּי־", "H3588#3"], ["ט֑וֹב", "H2896#3"]],

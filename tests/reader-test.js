@@ -310,20 +310,29 @@ async function boot() {
 
   // 17) Bereshit 1:4: אֶת y el 2.º בֵּין también en hebreo/directos
   const li4 = $$("#verses li")[3];
-  const T4 = "Y vio אלהים את la luz buena, y separó אלהים entre la luz y entre las tinieblas.";
+  const T4 = "Y vio אלהים la luz buena, y separó אלהים entre la luz y entre las tinieblas.";
   const esTexto4 = li4.querySelector(".es").textContent.replace(/\s+v1\.0\s*$/, "").trim();
   chk(esTexto4 === T4, "texto final de 1:4", esTexto4);
   const t4 = (id) => Array.from(li4.querySelectorAll(".es .w")).find((e) => e.dataset.s === id);
-  chk(t4("H853#2").textContent === "את", "אֶת queda en hebreo (H853#2)", t4("H853#2").textContent);
+  chk(t4("H853#2") === undefined && !li4.querySelector(".es").textContent.includes("את"),
+      "אֶת no se muestra en la traducción");
   chk(t4("H2896#3").textContent === "buena," && t4("H3588#3") === undefined,
       "כִּי no se traduce: solo טוֹב -> «buena»");
   chk(t4("H996#6").textContent === "entre" && t4("H996#8").textContent === "entre",
       "los dos בֵּין con id propio (H996#6 / H996#8)");
   chk(t4("H7200#0").textContent === "vio" && t4("H914#4").textContent === "separó",
       "וַיַּרְא -> «vio» y וַיַּבְדֵּל -> «separó»");
-  chk(li4.querySelectorAll(".es .w").length === 17 &&
+  chk(li4.querySelectorAll(".es .w").length === 16 &&
       Array.from(li4.querySelectorAll(".es .w")).every((e) => e.dataset.s),
-      "1:4 sin palabras sueltas: 17 de 17 con pareja");
+      "1:4 sin palabras sueltas: 16 de 16 con pareja");
+  // el marcador alef-tav lleva su nota al panel de letras
+  li4.querySelector(".he .w[data-s='H853#2']").dispatchEvent(new w.Event("click", { bubbles: true }));
+  await wait(60);
+  chk(/Alef-tav/.test($("#letras").textContent) &&
+      /acción directa del verbo/.test($("#letras").textContent),
+      "nota de alef-tav en el panel de letras", $("#letras").textContent.slice(-90));
+  chk(Array.from($("#letras").querySelectorAll("li .heb")).map((e) => e.textContent).join("") === "את",
+      "y las dos letras: Alef y Tav");
   li4.querySelector(".he .w[data-s='H2822#9']").dispatchEvent(new w.Event("click", { bubbles: true }));
   await wait(50);
   const marca4 = () => Array.from(li4.querySelectorAll(".es .w.marca"))
