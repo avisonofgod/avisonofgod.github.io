@@ -150,14 +150,18 @@ class TestVersionesES(unittest.TestCase):
                      {"n": 2, "es": "Y la tierra estaba desordenada y vacía."},
                      {"n": 3, "es": "Y dijo Dios: Sea la luz."},
                      {"n": 4, "es": "Y vio Dios que la luz era buena."},
-                     {"n": 5, "es": "Y llamó Dios a la luz día."}]}
-        self.assertEqual(es_verses.apply(chaps, "bereshit"), 4)
+                     {"n": 5, "es": "Y llamó Dios a la luz día."},
+                     {"n": 6, "es": "Y dijo Dios: haya expansión."}]}
+        self.assertEqual(es_verses.apply(chaps, "bereshit"), 5)
         self.assertEqual(chaps[1][0]["es_version"], "v1.0")
         self.assertEqual(chaps[1][1]["es_version"], "v1.0")
         self.assertEqual(chaps[1][2]["es"], "Y dijo אלהים, exista luz y existió luz.")
         self.assertEqual(chaps[1][3]["es"],
                          "Y vio אלהים la luz buena, y separó אלהים entre la luz y entre las tinieblas.")
-        self.assertNotIn("es_version", chaps[1][4])
+        self.assertEqual(chaps[1][4]["es"],
+                         "Y llamó אלהים la luz día, y las tinieblas llamó noche, fue anochecer "
+                         "y fue amanecer, día primero.")
+        self.assertNotIn("es_version", chaps[1][5])
         primera = chaps[1][1]["es"]
         es_verses.apply(chaps, "bereshit")          # idempotente
         self.assertEqual(chaps[1][1]["es"], primera)
@@ -167,10 +171,10 @@ class TestVersionesES(unittest.TestCase):
 
     def test_payload_declara_y_aplica(self):
         capas = es_verses.load()
-        payload = {c["version"]: c for c in es_verses.payload({"1.0": 4}, capas)}
+        payload = {c["version"]: c for c in es_verses.payload({"1.0": 5}, capas)}
         k = payload["1.0"]
-        self.assertEqual(k["verses_declared"], 4)
-        self.assertEqual(k["verses_applied"], 4)
+        self.assertEqual(k["verses_declared"], 5)
+        self.assertEqual(k["verses_applied"], 5)
         self.assertTrue(k["file"].startswith("build/es_versions/"))
         self.assertEqual(k["short"], "v1.0")
         self.assertEqual(k["author"], "עבדיהו")
@@ -237,7 +241,8 @@ class TestVersionesES(unittest.TestCase):
             self.assertEqual(d["verses"][2]["es_version"], "v1.0")
             self.assertEqual(d["verses"][2]["es"], "Y dijo אלהים, exista luz y existió luz.")
             self.assertEqual(d["verses"][3]["es_version"], "v1.0")
-            self.assertNotIn("es_version", d["verses"][4], "el resto sigue siendo RV1909")
+            self.assertEqual(d["verses"][4]["es_version"], "v1.0")
+            self.assertNotIn("es_version", d["verses"][5], "el resto sigue siendo RV1909")
 
 
 class TestLetrasHebreas(unittest.TestCase):
@@ -350,6 +355,21 @@ class TestStrongDelEspanol(unittest.TestCase):
         self.assertEqual(b["hx"][4], [["וַֽ", "P/c#4"], ["יְהִי־", "H1961#4"], ["אֽוֹר׃", "H216#4"]],
                          "el maqqef deja tres componentes en la última palabra")
 
+    def test_mapa_del_autor_en_bereshit_1_5(self):
+        b = self.capa["books"]["bereshit"]["1"]["5"]
+        texto = ("Y llamó אלהים la luz día, y las tinieblas llamó noche, fue anochecer y fue "
+                 "amanecer, día primero.")
+        pares = list(zip(texto.split(), b["st"]))
+        self.assertEqual(pares, [
+            ("Y", "P/c#0"), ("llamó", "H7121#0"), ("אלהים", "H430#1"), ("la", "P/l#3"),
+            ("luz", "H216#3"), ("día,", "H3117#4"), ("y", "P/c#5"), ("las", "P/l#5"),
+            ("tinieblas", "H2822#5"), ("llamó", "H7121#6"), ("noche,", "H3915#7"),
+            ("fue", "H1961#8"), ("anochecer", "H6153#8"), ("y", "P/c#9"), ("fue", "H1961#9"),
+            ("amanecer,", "H1242#9"), ("día", "H3117#10"), ("primero.", "H259#11"),
+        ], "todo casa, sin palabras sueltas")
+        self.assertEqual(b["hw"][2], "׀", "el paseq se conserva como palabra sin id")
+        self.assertEqual(b["hx"][2], [["׀", None]], "y no se traduce ni marca")
+
     def test_mapa_del_autor_en_bereshit_1_4(self):
         b = self.capa["books"]["bereshit"]["1"]["4"]
         texto = ("Y vio אלהים la luz buena, y separó אלהים entre la luz y entre las "
@@ -396,11 +416,11 @@ class TestStrongDelEspanol(unittest.TestCase):
                 for _txt, cid in comps:
                     if cid and cid.startswith("P/"):
                         self.assertIn(cid[2], self.capa["prefijos"], "código de prefijo documentado")
-            self.assertNotIn("hw", d["verses"][4], "versículo sin versión propia: sin etiquetas")
+            self.assertNotIn("hw", d["verses"][5], "versículo sin versión propia: sin etiquetas")
             e = json.load(open(os.path.join(tmp, "es", "bereshit", "1.json")))
             self.assertEqual(e["verses"][0]["st"],
                              self.capa["books"]["bereshit"]["1"]["1"]["st"])
-            self.assertNotIn("st", e["verses"][4], "versículo ajeno: sin etiquetas")
+            self.assertNotIn("st", e["verses"][5], "versículo ajeno: sin etiquetas")
 
 
 if __name__ == "__main__":

@@ -76,7 +76,7 @@ async function boot() {
   chk(/En el principio creó אלהים/i.test(rows[0].querySelector(".es").textContent), "y su español (RV1909 + enmienda)");
   chk((rows[0].querySelector(".es small.ver") || {}).textContent === "v1.0",
       "versículo marcado con la versión", (rows[0].querySelector(".es small.ver") || {}).textContent);
-  chk(/4 en v1\.0/.test($("#meta").textContent), "meta cuenta los versículos de la versión", $("#meta").textContent);
+  chk(/5 en v1\.0/.test($("#meta").textContent), "meta cuenta los versículos de la versión", $("#meta").textContent);
 
   // 4) enlace permanente a un versículo
   w.location.hash = "#/tehilim/23/1";
@@ -198,8 +198,8 @@ async function boot() {
   chk(li1.querySelectorAll(".w.marca").length === 0,
       "«el» no se une a ningún componente: no marca", String(elArt.dataset.s));
 
-  // versículo ajeno a la versión propia (1:5): sin componentes ni marcador
-  const liAjeno = $$("#verses li")[4];
+  // versículo ajeno a la versión propia (1:6): sin componentes ni marcador
+  const liAjeno = $$("#verses li")[5];
   chk(liAjeno.querySelectorAll(".he .w").length === 0 && liAjeno.querySelectorAll(".es .w").length === 0,
       "versículo sin versión propia: sin componentes",
       liAjeno.querySelectorAll(".w").length);
@@ -341,6 +341,24 @@ async function boot() {
   li4.querySelector(".he .w[data-s='P/d#9']").dispatchEvent(new w.Event("click", { bubbles: true }));
   await wait(50);
   chk(marca4() === "las", "clic en el artículo הַ marca «las»", marca4());
+
+  // 18) Bereshit 1:5: nombres puestos a la luz y a las tinieblas
+  const li5 = $$("#verses li")[4];
+  const T5 = "Y llamó אלהים la luz día, y las tinieblas llamó noche, fue anochecer y fue " +
+    "amanecer, día primero.";
+  const esTexto5 = li5.querySelector(".es").textContent.replace(/\s+v1\.0\s*$/, "").trim();
+  chk(esTexto5 === T5, "texto final de 1:5", esTexto5);
+  const t5 = (id) => Array.from(li5.querySelectorAll(".es .w")).find((e) => e.dataset.s === id);
+  chk(t5("H3117#4").textContent === "día," && t5("H3915#7").textContent === "noche,",
+      "יוֹם -> «día» y לַיְלָה -> «noche»");
+  chk(t5("H6153#8").textContent === "anochecer" && t5("H1242#9").textContent === "amanecer,",
+      "עֶרֶב -> «anochecer» y בֹּקֶר -> «amanecer»");
+  chk(t5("H259#11").textContent === "primero.", "אֶחָד -> «primero»");
+  chk(t5("H7121#0").textContent === "llamó" && t5("H7121#6").textContent === "llamó",
+      "las dos formas de קָרָא con id propio");
+  chk(li5.querySelectorAll(".es .w").length === 18 &&
+      Array.from(li5.querySelectorAll(".es .w")).every((e) => e.dataset.s),
+      "1:5 sin palabras sueltas: 18 de 18 con pareja");
 
   // copiar sigue trayendo el texto completo (los spans no lo rompen)
   li1.querySelector("[data-copy]").dispatchEvent(new w.Event("click", { bubbles: true }));

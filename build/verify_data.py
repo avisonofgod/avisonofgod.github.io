@@ -77,7 +77,7 @@ def main():
     bad_schema, bad_he, bad_ref = [], [], []
     bad_palabras = []
     total_he = total_es = 0
-    he_pal = he_pal_strong = es_tok = es_tok_strong = 0
+    he_pal = he_pal_strong = he_pal_letras = es_tok = es_tok_strong = 0
     etiquetados_he, etiquetados_es, con_version = set(), set(), set()
     for book in idx["books"]:
         slug = book["slug"]
@@ -116,6 +116,8 @@ def main():
                             if cid and not (cid.startswith("P/") or STRONG_OK.match(cid)):
                                 bad_palabras.append(ref + " (id raro: %s)" % cid)
                     he_pal += len(hw)
+                    # el paseq (׀) es puntuación: cuenta como palabra del texto pero no lleva raíz
+                    he_pal_letras += sum(1 for w in hw if any("\u05d0" <= c <= "\u05ea" for c in w))
                     he_pal_strong += sum(1 for s in hs if s)
             ep = os.path.join(OUT, "es", slug, "%d.json" % cap)
             if os.path.isfile(ep):
@@ -145,9 +147,9 @@ def main():
     check(etiquetados_he == etiquetados_es == con_version and con_version,
           "el etiquetado cubre EXACTAMENTE los versículos de la versión propia עבדיהו",
           "he=%d es=%d versión=%d" % (len(etiquetados_he), len(etiquetados_es), len(con_version)))
-    check(he_pal > 0 and he_pal_strong == he_pal,
-          "hebreo: cada palabra de los versículos propios trae su raíz",
-          "%d palabras (%d con Strong)" % (he_pal, he_pal_strong))
+    check(he_pal_strong == he_pal_letras > 0,
+          "hebreo: cada palabra con letras de los versículos propios tiene raíz",
+          "%d palabras (%d con letras, %d con Strong)" % (he_pal, he_pal_letras, he_pal_strong))
     check(es_tok_strong > 0 and es_tok_strong <= es_tok,
           "español: tokens con id (resto = partículas sueltas)",
           "%d/%d (%.0f%%)" % (es_tok_strong, es_tok, 100 * es_tok_strong / max(1, es_tok)))
