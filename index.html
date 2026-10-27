@@ -39,6 +39,23 @@ input[type=search] { width: 100%; padding: 8px 12px; border: 1px solid var(--lin
 .seg button[aria-pressed=true] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 .tool { border: 1px solid var(--line); background: transparent; border-radius: 8px;
         padding: 6px 9px; cursor: pointer; }
+.seg.iconos button { font-size: 1.05rem; line-height: 1; padding: 7px 11px; direction: ltr; }
+.tool.icono { font-size: 1.05rem; line-height: 1; padding: 7px 10px; }
+/* Letras (pictografía) pegadas a la cabecera: se ven en móvil sin abrir el nav. */
+header .letras { flex: 1 1 100%; margin: 2px 0 0; padding: 6px 0 2px;
+  border-top: 1px solid var(--line); max-height: 30vh; overflow: auto; }
+header .letras[hidden] { display: none; }
+header .letras h2 { font-size: .92rem; margin: 0 0 4px; display: flex; gap: 8px; align-items: baseline; }
+header .letras h2 .heb { font-size: 1.15rem; direction: rtl; }
+header .letras ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0 14px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+header .letras li { display: flex; align-items: baseline; gap: 8px; padding: 3px 0;
+  border-top: 1px dashed var(--line); }
+header .letras li .heb { font-size: 1.35rem; line-height: 1.1; direction: rtl; min-width: 1.4rem; }
+header .letras li b { min-width: 3.9rem; font-weight: 600; }
+header .letras li span:last-child { color: var(--muted); font-size: .8rem; }
+header .letras .nota { margin: 6px 0 0; padding: 6px 8px; border-left: 3px solid var(--accent);
+  background: var(--accent-soft); font-size: .8rem; line-height: 1.35; }
 .tool:hover, .seg button:hover { background: var(--accent-soft); }
 
 .wrap { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 18px;
@@ -46,7 +63,8 @@ input[type=search] { width: 100%; padding: 8px 12px; border: 1px solid var(--lin
 @media (max-width: 860px) { .wrap { grid-template-columns: 1fr; } }
 
 nav.bar { border: 1px solid var(--line); border-radius: 12px; background: var(--card);
-          padding: 10px; align-self: start; position: sticky; top: 62px; max-height: 82vh; overflow: auto; }
+          padding: 10px; align-self: start; position: sticky;
+          top: calc(var(--cabecera-h, 62px) + 8px); max-height: 78vh; overflow: auto; }
 @media (max-width: 860px) { nav.bar { position: static; max-height: none; } }
 nav.bar details { border-bottom: 1px dashed var(--line); padding: 4px 0; }
 nav.bar details:last-child { border-bottom: 0; }
@@ -91,20 +109,7 @@ ol.verses li:target, ol.verses li.hit { background: var(--mark); }
 #marca-info { color: var(--muted); font-size: .85rem; }
 #marca-info b { color: var(--accent); }
 /* desglose por letra de la palabra seleccionada, dentro del nav y hacia abajo */
-nav.bar .secciones { border-bottom: 2px solid var(--line); padding-bottom: 4px; }
-nav.bar section.letras { margin-top: 10px; padding-top: 8px; border-top: 2px solid var(--line);
-  position: sticky; bottom: 0; background: var(--card); }
-nav.bar section.letras h2 { font-size: .92rem; margin: 2px 0 6px; }
-nav.bar section.letras .ayuda { color: var(--muted); font-size: .8rem; margin: 0; }
-nav.bar section.letras ol { list-style: none; margin: 0; padding: 0; }
-nav.bar section.letras li { display: flex; align-items: baseline; gap: 8px; padding: 4px 0;
-  border-top: 1px solid var(--line); }
-nav.bar section.letras li:first-child { border-top: 0; }
-nav.bar section.letras .heb { font-size: 1.5rem; line-height: 1.1; direction: rtl; }
-nav.bar section.letras li b { min-width: 4.4rem; }
-nav.bar section.letras li span:last-child { color: var(--muted); font-size: .82rem; }
-nav.bar section.letras .nota { margin: 8px 0 0; padding: 6px 8px; border-left: 3px solid var(--accent);
-  background: var(--accent-soft); color: var(--text); font-size: .8rem; line-height: 1.35; }
+nav.bar .secciones { padding-bottom: 2px; }
 .es small.ver { color: var(--accent); font-size: .75em; white-space: nowrap; }
 .es { margin-top: 2px; }
 body.no-niqqud .he { /* el niqqud se quita al mostrar he_plain */ }
@@ -141,17 +146,19 @@ footer a { color: var(--accent); }
 <body>
 <a class="skip" href="#lectura">Saltar al texto</a>
 
-<header>
+<header id="cabecera">
   <div class="brand">Tanaj</div>
   <div class="grow"><input id="q" type="search" placeholder="Buscar en el Tanaj (hebreo o español) — tecla /"
        aria-label="Buscar en el Tanaj" autocomplete="off"></div>
-  <div class="seg" role="group" aria-label="Idioma">
-    <button data-mode="both" aria-pressed="true">Ambos</button>
-    <button data-mode="he" aria-pressed="false">Hebreo</button>
-    <button data-mode="es" aria-pressed="false">Español</button>
+  <div class="seg iconos" role="group" aria-label="Idioma">
+    <button data-mode="both" aria-pressed="true" title="Hebreo y español" aria-label="Hebreo y español">אA</button>
+    <button data-mode="he" aria-pressed="false" title="Solo hebreo" aria-label="Solo hebreo">א</button>
+    <button data-mode="es" aria-pressed="false" title="Solo español" aria-label="Solo español">A</button>
   </div>
-  <button class="tool" id="nk" aria-pressed="true" title="Mostrar u ocultar niqqud y te'amim">ניקוד</button>
-  <button class="tool" id="rnd" title="Versículo al azar">Al azar</button>
+  <button class="tool icono" id="nk" aria-pressed="true" title="Mostrar u ocultar niqqud y te'amim"
+          aria-label="Mostrar u ocultar niqqud y te'amim">בָּ</button>
+  <button class="tool icono" id="rnd" title="Versículo al azar" aria-label="Versículo al azar">⚄</button>
+  <section class="letras" id="letras" aria-live="polite" hidden></section>
 </header>
 
 <div id="results" role="listbox" aria-label="Resultados"></div>
@@ -236,8 +243,6 @@ function renderNav() {
     html += "</ul></details>";
   }
   html += "</div>";
-  html += "<section class='letras' id='letras' aria-live='polite'><h2>Letras</h2>" +
-    AYUDA_LETRAS + "</section>";
   nav.innerHTML = html;
   navAbiertas = null;
   delete nav.dataset.colapsado;
@@ -275,8 +280,6 @@ function restaurarSecciones() {
 }
 
 /* ── desglose por letra (lectura pictográfica) ───────────────────────── */
-const AYUDA_LETRAS = "<p class='ayuda'>Toca un componente hebreo (o su palabra española) y aquí " +
-  "aparece, una por línea, cada letra con su lectura pictográfica.</p>";
 let TABLA = null;
 
 function cargarLetras() {
@@ -300,8 +303,10 @@ function pintarLetras(palabra, conNota) {
   const caja = document.getElementById("letras");
   if (!caja) return;
   const letras = letrasDe(palabra);
-  if (!letras.length) {
-    caja.innerHTML = "<h2>Letras</h2>" + AYUDA_LETRAS;
+  if (!letras.length) {                     // sin selección: el panel no ocupa sitio
+    caja.hidden = true;
+    caja.innerHTML = "";
+    alturaCabecera();
     return;
   }
   caja.innerHTML = "<h2>Letras de <span class='heb'>" + esc((palabra || "").trim()) +
@@ -311,6 +316,15 @@ function pintarLetras(palabra, conNota) {
         esc(d.pictograma) + "</span></li>";
     }).join("") + "</ol>" +
     (conNota ? "<p class='nota'>" + esc(NOTA_AT) + "</p>" : "");
+  caja.hidden = false;
+  alturaCabecera();
+}
+
+/* El nav es sticky: se coloca debajo de la cabecera real (que crece con las letras). */
+function alturaCabecera() {
+  const cab = document.getElementById("cabecera");
+  if (!cab) return;
+  document.documentElement.style.setProperty("--cabecera-h", cab.offsetHeight + "px");
 }
 
 /* Pieza tocable: lleva el índice de su palabra y su id (Strong de raíz o P/<letra>). */
@@ -329,7 +343,9 @@ function verseHe(v) {
       return comps.map((c) => spanW(state.niqqud ? c[0] : sinNiqqud(c[0]), c[1], i)).join("");
     }).join(" ");
   } else {
-    cuerpo = esc(state.niqqud ? v.he : v.he_plain);
+    /* Sin capa propia la pictografía sigue disponible: basta partir el texto en palabras. */
+    cuerpo = (state.niqqud ? v.he : v.he_plain).split(" ")
+      .map((w, i) => spanW(w, "", i)).join(" ");
   }
   return cuerpo + (v.marker ? " <span class='marker'>[" + esc(v.marker) + "]</span>" : "");
 }
@@ -385,7 +401,9 @@ function renderChapter(he, es) {
   $("#verses").innerHTML = rows.join("");
   limpiarMarca();
   marca.fijo = false;
+  marca.el = null;
   $("#marca-info").innerHTML = "";
+  pintarLetras("");                          // el panel vuelve a plegarse en cada capítulo
   document.title = b.es + " " + state.chapter + " — Tanaj";
 }
 function row(hv, ev) {
@@ -548,7 +566,13 @@ const glosaId = (id) => (id.slice(0, 2) === "P/"
 function pintarPalabra(li, el) {
   limpiarMarca();
   const id = el.dataset.s;
-  if (!id) return;
+  if (!id) {                                  // sin pareja: la pictografía es independiente
+    if (el.closest(".he")) {
+      pintarLetras(el.textContent, false);
+      $("#marca-info").textContent = el.textContent;
+    }
+    return;
+  }
   for (const bloque of [".he", ".es"]) {
     for (const w of palabrasDe(li, bloque)) {
       if (w.dataset.s === id) w.classList.add("marca");
@@ -643,6 +667,8 @@ function route() {
 async function boot() {
   try {
     cargarLetras();
+    alturaCabecera();
+    addEventListener("resize", alturaCabecera);
     state.idx = await getJSON("v1/index.json");
     state.idx.books.forEach((b) => { state.books[b.slug] = b; });
     await route();

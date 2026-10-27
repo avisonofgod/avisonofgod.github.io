@@ -200,14 +200,14 @@ async function boot() {
 
   // versículo ajeno a la versión propia (1:9): sin componentes ni marcador
   const liAjeno = $$("#verses li")[8];
-  chk(liAjeno.querySelectorAll(".he .w").length === 0 && liAjeno.querySelectorAll(".es .w").length === 0,
-      "versículo sin versión propia: sin componentes",
-      liAjeno.querySelectorAll(".w").length);
+  chk(liAjeno.querySelectorAll(".es .w").length === 0 &&
+      [...liAjeno.querySelectorAll(".he .w")].every((wp) => !wp.dataset.s),
+      "versículo sin versión propia: hebreo partido pero sin pareja",
+      liAjeno.querySelectorAll(".he .w").length);
 
   // 13) desglose por letra de la palabra seleccionada (panel dentro del nav)
-  chk(!!$("#letras") && !!$("#nav").querySelector("section.letras"),
-      "el nav trae el panel de letras",
-      $("#letras") && $("#letras").querySelector("h2").textContent);
+  chk(!!$("#letras") && $("#letras").classList.contains("letras"),
+      "hay panel de letras (en la cabecera)");
   resh.dispatchEvent(new w.Event("click", { bubbles: true }));
   await wait(80);
   const filas = Array.from($("#letras").querySelectorAll("li"));
@@ -243,7 +243,8 @@ async function boot() {
   await wait(60);
   chk(secs().some((d) => d.open), "al quitar el marcador se restauran",
       secs().map((d) => (d.open ? "abierta" : "plegada")).join(","));
-  chk(/pictográfica/.test($("#letras").textContent), "y el panel vuelve a su ayuda");
+  chk($("#letras").hidden === true && $("#letras").textContent === "",
+      "y el panel de letras se oculta al quitar el marcador");
   resh.dispatchEvent(new w.Event("click", { bubbles: true }));
   await wait(60);
   chk(secs().every((d) => !d.open) && $("#letras").querySelectorAll("li").length === 5,
@@ -414,6 +415,31 @@ async function boot() {
   chk(li8.querySelectorAll(".es .w").length === 14 &&
       Array.from(li8.querySelectorAll(".es .w")).every((e) => e.dataset.s),
       "1:8 sin palabras sueltas: 14 de 14 con pareja");
+
+  // 22) controles solo con icono y pictografía en toda la Escritura
+  const modos = [...$$("#cabecera .seg button")];
+  chk(modos.length === 3 && modos.every((b) => b.textContent.trim().length <= 2 &&
+      b.getAttribute("aria-label")), "los tres modos son iconos con aria-label",
+      modos.map((b) => b.textContent.trim()).join(" "));
+  const corto = (b) => b.textContent.replace(/[\u0591-\u05c7]/g, "").trim().length <= 2;
+  chk($$("#cabecera button").every((b) => corto(b) &&
+      (b.getAttribute("aria-label") || b.getAttribute("title"))),
+      "ningún botón de la cabecera lleva texto largo",
+      $$("#cabecera button").map((b) => JSON.stringify(b.textContent)).join(" "));
+  const li9 = $$("#verses li")[8];                    // 1:9: sin versión propia
+  chk(li9.querySelectorAll(".es .w").length === 0, "1:9 no tiene pareja española");
+  const palabras9 = [...li9.querySelectorAll(".he .w")];
+  chk(palabras9.length > 3 && palabras9.every((wp) => !wp.dataset.s),
+      "pero el hebreo se parte en palabras tocables", String(palabras9.length));
+  palabras9[0].dispatchEvent(new w.Event("click", { bubbles: true }));
+  await wait(80);
+  chk($("#letras").hidden === false && $("#letras").querySelectorAll("li").length > 0,
+      "y su pictografía se muestra igual",
+      $("#letras").querySelectorAll("li").length + " letras");
+  chk(/^[א-ת]/.test($("#marca-info").textContent.trim()) &&
+      li9.querySelectorAll(".es .w.marca").length === 0 &&
+      li9.querySelectorAll(".he .w.marca").length === 0,
+      "sin pareja no se marca nada, solo se muestra la palabra");
 
   // copiar sigue trayendo el texto completo (los spans no lo rompen)
   li1.querySelector("[data-copy]").dispatchEvent(new w.Event("click", { bubbles: true }));
