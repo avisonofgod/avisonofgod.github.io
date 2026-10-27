@@ -323,7 +323,7 @@ function pintarLetras(palabra, conNota) {
 /* El nav es sticky: se coloca debajo de la cabecera real (que crece con las letras). */
 function alturaCabecera() {
   const cab = document.getElementById("cabecera");
-  if (!cab) return;
+  if (!cab || !cab.offsetHeight) return;      // sin layout (o aún oculta) no se toca
   document.documentElement.style.setProperty("--cabecera-h", cab.offsetHeight + "px");
 }
 
